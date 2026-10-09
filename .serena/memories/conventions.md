@@ -1,0 +1,6 @@
+- Preserve nested source/AGENTS Next-generated instructions; read relevant installed docs `source/node_modules/next/dist/docs/` before app changes.
+- Strict TS; shared types in lib/types; all mutations flow through owned transactional lib/domain. Do not accept workspace IDs or mutate entries without ownership/version/audit checks; consult `mem:foundation`.
+- Formatting via npm run format; ESLint Next/TS rules enforce hook purity. Client external refresh occurs via scheduled effect callback; clock reads happen in interval callback, not render.
+- Next16.4 cacheComponents/partialPrefetching: URL params reads wrapped in page-level Suspense, root streaming fallback; runtime segment override incompatible with cacheComponents. Node runtime is default.
+- Reuse amber tokens/import and contrast thresholds, no unverified integration states; consult `mem:design_system`. Global framework CSS remains preserved; new styles additive.
+- SQLite migration command reads process environment, unlike app Next .env.local loading; custom ORDERLY_DB_PATH must be supplied to CLI explicitly.

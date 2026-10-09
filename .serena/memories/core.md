@@ -1,0 +1,5 @@
+- Orderly tracks actual freelance time; Asana/Notion/GitHub evidence integrations and billing exports remain future phases. Phase 1 persisted tracker is implemented.
+- Repository governance at root; Next.js app/npm commands in `source/`. Root AGENTS mandates Serena, memories at completion, and full commit/push/PR workflow only when commit requested; preserve all pending changes.
+- For stack/package pins: `mem:tech_stack`. For commands: `mem:suggested_commands`. For installed Next docs/edit conventions: `mem:conventions`. For commit workflow and the user's rule against tests unless explicitly requested: `mem:task_completion`. For writing memories: `mem:memory_maintenance`.
+- For actual persistence/auth/ownership/timer/rate/job contracts: `mem:foundation`. For Supabase GitHub deployment, private access and pending dashboard activation: `mem:supabase`. For portable amber Hallmark tokens and contrast evidence: `mem:design_system`.
+- For separate-session roadmap/status and handoff entry points: `mem:implementation_plan`. For latest outcome/checks/remaining limits: `mem:task_status`.
