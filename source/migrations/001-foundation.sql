@@ -1,0 +1,11 @@
+CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, timezone TEXT NOT NULL DEFAULT 'UTC');
+CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires INTEGER NOT NULL);
+CREATE TABLE auth_attempts (email TEXT PRIMARY KEY, attempts INTEGER NOT NULL, reset_at INTEGER NOT NULL);
+CREATE TABLE clients (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL);
+CREATE TABLE projects (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), client_id TEXT NOT NULL REFERENCES clients(id), name TEXT NOT NULL, currency TEXT NOT NULL, rate INTEGER NOT NULL CHECK(rate >= 0));
+CREATE TABLE tasks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), project_id TEXT NOT NULL REFERENCES projects(id), name TEXT NOT NULL);
+CREATE TABLE entries (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), task_id TEXT NOT NULL REFERENCES tasks(id), start INTEGER NOT NULL, end INTEGER, rate INTEGER NOT NULL, currency TEXT NOT NULL, billable INTEGER NOT NULL DEFAULT 1, notes TEXT NOT NULL DEFAULT '', deleted INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1, CHECK(end IS NULL OR end > start));
+CREATE UNIQUE INDEX one_active_timer ON entries(user_id) WHERE end IS NULL AND deleted = 0;
+CREATE INDEX entry_intervals ON entries(user_id,start,end);
+CREATE TABLE audit (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), entry_id TEXT NOT NULL REFERENCES entries(id), action TEXT NOT NULL, before_json TEXT, after_json TEXT, at INTEGER NOT NULL);
+CREATE TABLE requests (user_id TEXT NOT NULL REFERENCES users(id), key TEXT NOT NULL, payload TEXT NOT NULL, result TEXT NOT NULL, PRIMARY KEY(user_id,key));

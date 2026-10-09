@@ -1,0 +1,13 @@
+# Phase 1 Hallmark record
+
+Audience: individual freelancers. Use: start/stop work on a task. Tone: utilitarian. Authorized custom amber direction: warm, precise, quiet working ledger.
+
+Preflight: starter `source/app/layout.tsx` loaded Geist/Geist Mono with next/font/google; `source/app/globals.css` had starter light/dark colors, Arial body, Tailwind import and inline theme; `source/package.json` had Next.js 16.4/React 19.3, no motion dependency, no product spacing system. No prior Hallmark log, stamp, or locked design.md existed.
+
+Selected Workbench, adapted to an actual product workspace rather than a marketing tour. N3 adapted labelled workspace rail (four real destinations), Ft2 single-line footer. Genre: modern-minimal; custom warm light paper / Geist grotesk / amber. Type-only enrichment; no images, fake browser frames, decorative icons, invented numbers, or marketing sections. The modern-minimal single-family exception retains the established Geist body/display; Geist Mono is used for tabular time.
+
+Portable tokens: `source/tokens.css`; imported by existing global CSS with framework directives preserved. Self-hosted fonts replace Google fetching for reproducible builds. Controls use neutral hover, restrained one-pixel active displacement, immediate dark amber focus, native disabled states with contrast-preserving colors/cursor, pending text, native validation, explicit error messages, and silent success in saved records. Disabled opacity is intentionally not reduced: the user's measured disabled-text contrast requirement takes priority. Reduced motion removes displacement. Layout grows from mobile defaults into wider columns.
+
+Visual inspection: rendered screenshots at 320, 375, 414, 768, 1440 pixels; all five views checked for horizontal overflow and clipped controls by Chromium. A 320px nav clipping issue was corrected before acceptance. Keyboard focus, skip link, reduced motion, labels, error recovery and empty/pending states checked. Evidence: handoff assets; full generated screenshots in ignored `source/test-results/`.
+
+Pre-emit critique: Philosophy 4 / Hierarchy 4 / Execution 4 / Specificity 5 / Restraint 5 / Variety 4. Applicable Hallmark gate sweep passes after fixes; marketing-video/image/studied-DNA/radio-tab gates are not applicable. Baseline starter CSS remains intact; new effective palette/font declarations use named tokens. Measured WCAG pairs are recorded in `contrast.json`: body 15.71:1, primary button normal/hover/active 8.28/6.94/5.77:1, disabled 5.63:1, error 8.65:1, focus 7.73:1 against paper and 4.07:1 against amber, control rule 4.75:1 against surface. No fabricated proof or connected integrations.

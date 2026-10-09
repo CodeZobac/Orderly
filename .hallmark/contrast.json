@@ -1,0 +1,68 @@
+[
+  {
+    "fg": "ink",
+    "bg": "paper",
+    "min": 7,
+    "ratio": 15.712465000696431
+  },
+  {
+    "fg": "muted",
+    "bg": "paper",
+    "min": 4.5,
+    "ratio": 7.492927441665458
+  },
+  {
+    "fg": "muted",
+    "bg": "paper-2",
+    "min": 4.5,
+    "ratio": 6.5542076896961685
+  },
+  {
+    "fg": "ink",
+    "bg": "accent",
+    "min": 4.5,
+    "ratio": 8.275358913530763
+  },
+  {
+    "fg": "ink",
+    "bg": "accent-hover",
+    "min": 4.5,
+    "ratio": 6.942003634344195
+  },
+  {
+    "fg": "ink",
+    "bg": "accent-active",
+    "min": 4.5,
+    "ratio": 5.770019820607158
+  },
+  {
+    "fg": "muted",
+    "bg": "disabled",
+    "min": 4.5,
+    "ratio": 5.632608467145166
+  },
+  {
+    "fg": "error",
+    "bg": "error-paper",
+    "min": 4.5,
+    "ratio": 8.646036453157759
+  },
+  {
+    "fg": "focus",
+    "bg": "paper",
+    "min": 3,
+    "ratio": 7.72505576945227
+  },
+  {
+    "fg": "focus",
+    "bg": "accent",
+    "min": 3,
+    "ratio": 4.068591981998089
+  },
+  {
+    "fg": "rule",
+    "bg": "surface",
+    "min": 3,
+    "ratio": 4.754114016683094
+  }
+]

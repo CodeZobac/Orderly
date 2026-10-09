@@ -1,0 +1,48 @@
+/* Hallmark · macrostructure: Workbench · tone: utilitarian · anchor hue: amber
+ * genre: modern-minimal · theme: custom · nav: N3 adapted workspace rail · footer: Ft2
+ * audience: individual freelancers · use: start/stop task work
+ * vibe: warm precise quiet working ledger · axes: light / grotesk-sans / warm
+ * paper: oklch(97.5% 0.012 85) · accent: oklch(78% 0.155 75)
+ * display: Geist · body: Geist · data: Geist Mono · enrichment: none
+ * Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V4
+ */
+:root {
+  --color-paper: oklch(97.5% 0.012 85);
+  --color-surface: oklch(99% 0.006 85);
+  --color-paper-2: oklch(93% 0.015 85);
+  --color-ink: oklch(23% 0.012 75);
+  --color-muted: oklch(43% 0.018 75);
+  --color-rule: oklch(55% 0.018 75);
+  --color-divider: oklch(84% 0.015 75);
+  --color-accent: oklch(78% 0.155 75);
+  --color-accent-hover: oklch(73% 0.15 75);
+  --color-accent-active: oklch(68% 0.14 75);
+  --color-accent-ink: var(--color-ink);
+  --color-focus: oklch(43% 0.1 65);
+  --color-error: oklch(40% 0.14 30);
+  --color-error-paper: oklch(96% 0.025 30);
+  --color-success: oklch(36% 0.065 150);
+  --color-disabled: oklch(88% 0.015 85);
+  --font-display: var(--font-geist-sans), Arial, sans-serif;
+  --font-body: var(--font-geist-sans), Arial, sans-serif;
+  --font-data: var(--font-geist-mono), monospace;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --text-nav: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-body: 1rem;
+  --text-title: clamp(1.8rem, 4vw, 2.5rem);
+  --text-clock: clamp(2.5rem, 6vw, 4.5rem);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --rule-width: 1px;
+  --dur-short: 100ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
