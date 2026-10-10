@@ -40,6 +40,7 @@ Treat a request to commit as authorization to carry out this entire workflow:
 
 ## Supabase deployment
 
+- When database schema changes are needed, implement them in the `source/supabase/` folder as versioned SQL migrations under `source/supabase/migrations/`. Do not add new schema changes to the legacy `source/migrations/` folder.
 - Supabase is Orderly's primary database; retain independent Orderly authentication. Do not introduce Supabase Auth for sign-in or sessions.
 - Deploy schema changes through the Supabase GitHub integration for `CodeZobac/Orderly`. Its working directory is `source`, production branch is `main`, and migrations live in `source/supabase/migrations/`.
 - Create migration files with the installed Supabase CLI (`supabase migration new`), review and verify them locally, then include them in the normal GitHub pull request workflow. Prefer GitHub deployments over direct production schema mutations. Use Supabase MCP for inspection, diagnostics, and post-deployment verification; only apply migrations directly when explicitly requested.
