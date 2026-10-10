@@ -2,6 +2,120 @@
 @import "tailwindcss";
 @import "../tokens.css";
 
+/* BranchedMenu keeps its layout independent of the legacy responsive nav. */
+.rail .branched-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: min(var(--bm-w), 100%);
+  color: var(--bm-ink);
+  font-size: var(--bm-font);
+  --bm-muted: var(--color-muted) !important;
+}
+.branched-menu::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--bm-line) 0%,
+    var(--bm-line) 55%,
+    transparent 100%
+  );
+}
+.branched-menu .bm-marker {
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--bm-accent);
+  opacity: 0;
+  transition:
+    top 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 150ms ease;
+}
+.branched-menu .bm-marker[data-on] {
+  opacity: 1;
+}
+.branched-menu :is(.bm-head, .bm-child) {
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-decoration: none;
+  text-align: left;
+  font-family: inherit;
+  color: var(--bm-muted);
+  cursor: pointer;
+  transition: color 200ms ease;
+  transform: none;
+}
+.branched-menu .bm-head {
+  display: block;
+  padding: 9px 0;
+  font-size: calc(var(--bm-font) + 1px);
+  font-weight: 500;
+}
+.branched-menu .bm-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--bm-row);
+  min-height: var(--bm-row);
+  padding: 0 0 0 var(--bm-indent);
+  font-size: var(--bm-font);
+}
+.branched-menu [data-open] > .bm-head,
+.branched-menu :is(.bm-head, .bm-child):hover {
+  color: var(--bm-ink);
+}
+.branched-menu [data-active] {
+  color: var(--bm-accent);
+  font-weight: 600;
+}
+.branched-menu :is(.bm-head, .bm-child):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.branched-menu .bm-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--bm-fold) cubic-bezier(0.23, 1, 0.32, 1);
+}
+.branched-menu [data-open] > .bm-fold {
+  grid-template-rows: 1fr;
+}
+.branched-menu .bm-lines {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.branched-menu [data-open] .bm-lines {
+  opacity: 1;
+}
+.branched-menu .bm-lines path {
+  fill: none;
+  stroke: var(--bm-line);
+  stroke-width: var(--bm-line-w);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.branched-menu .bm-lines .bm-reach {
+  stroke: var(--bm-accent);
+  transition: stroke-dashoffset var(--bm-draw) cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .branched-menu :is(.bm-marker, .bm-fold, .bm-lines, .bm-reach) {
+    transition: none;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -224,19 +338,19 @@ small,
   letter-spacing: 0;
   color: var(--color-muted);
 }
-nav {
+.rail > nav:not(.branched-menu) {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
-nav a {
+.rail > nav:not(.branched-menu) a {
   padding: var(--space-sm) var(--space-md);
   min-height: 44px;
   white-space: nowrap;
   text-decoration: none;
   border-left: 3px solid var(--color-paper-2);
 }
-nav a[aria-current="page"] {
+.rail > nav:not(.branched-menu) a[aria-current="page"] {
   border-left-color: var(--color-focus);
   background: var(--color-surface);
   font-weight: 650;
@@ -539,19 +653,19 @@ a:active {
 .rail .wordmark span {
   display: none;
 }
-nav {
+.rail > nav:not(.branched-menu) {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
 }
-nav a {
+.rail > nav:not(.branched-menu) a {
   font-size: var(--text-nav);
   padding: var(--space-sm) 0;
   border-left: 0;
   border-bottom: 3px solid var(--color-paper-2);
   text-align: center;
 }
-nav a[aria-current="page"] {
+.rail > nav:not(.branched-menu) a[aria-current="page"] {
   border-bottom-color: var(--color-focus);
 }
 .account {
@@ -626,19 +740,19 @@ main {
   .rail .wordmark span {
     display: block;
   }
-  nav {
+  .rail > nav:not(.branched-menu) {
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
   }
-  nav a {
+  .rail > nav:not(.branched-menu) a {
     font-size: var(--text-body);
     padding: var(--space-sm) var(--space-md);
     border-left: 3px solid var(--color-paper-2);
     border-bottom: 0;
     text-align: left;
   }
-  nav a[aria-current="page"] {
+  .rail > nav:not(.branched-menu) a[aria-current="page"] {
     border-left-color: var(--color-focus);
   }
   .account {
@@ -705,4 +819,46 @@ main {
   .week {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
+}
+/* Phase 2: extend the established Hallmark workbench with source-mapping rows.
+ * Existing amber tokens, typography and shared control states stay authoritative. */
+.integration-workbench {
+  margin-block: var(--space-lg);
+}
+.integration-connection,
+.integration-mapping,
+.integration-source-picker {
+  padding-block: var(--space-lg);
+  border-top: 1px solid var(--color-rule);
+}
+.integration-source {
+  padding-block: var(--space-lg);
+}
+.integration-source-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+.integration-source-picker h3,
+.integration-source-picker p {
+  flex-basis: 100%;
+}
+.integration-mapping {
+  max-width: 44rem;
+}
+.integration-mapping textarea {
+  width: 100%;
+  min-height: 6rem;
+}
+.integration-workbench h3 {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.integration-workbench button {
+  white-space: nowrap;
+  max-width: 100%;
+}
+.integration-source-picker button {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

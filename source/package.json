@@ -12,12 +12,16 @@
     "test:browser": "playwright test",
     "format": "prettier --write app components lib tests scripts tokens.css playwright.config.ts",
     "smoke:production": "node --import tsx scripts/smoke-production.ts",
+    "sync:worker": "node --import tsx scripts/sync-worker.ts",
+    "test:integrations": "node --import tsx --test tests/integrations.test.ts",
     "db:check": "node --import tsx scripts/check-db.ts",
     "db:import": "node --import tsx scripts/import-sqlite.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@hugeicons/core-free-icons": "^4.3.5",
+    "@hugeicons/react": "^1.1.10",
     "@supabase/supabase-js": "2.117.3",
     "next": "16.4.0",
     "react": "19.3.0",

@@ -1,6 +1,6 @@
 # Phase 2 — Asana and Notion integrations
 
-Status: planned. Execute in its own chat session after Phase 1.
+Status: implemented locally; partial pending authorized acceptance checks and live setup. See [Phase 2 handoff](handoffs/phase-2.md). Continue this phase before advancing to Phase 3.
 
 ## Start here
 

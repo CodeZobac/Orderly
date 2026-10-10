@@ -1,6 +1,6 @@
 # Orderly implementation plan
 
-Status: Phase 1 complete. Phases 2–4 planned; each requires its own session.
+Status: Phase 1 complete. Phase 2 implemented locally, partial pending authorized acceptance checks and live setup; see [handoff](handoffs/phase-2.md). Phases 3–4 remain planned; each requires its own session.
 
 Phase 1 handoff: [implemented foundation and verification](handoffs/phase-1.md).
 
@@ -11,7 +11,7 @@ Build a freelance time-tracking app that connects work in Asana, Notion, and Git
 | Session | Brief | Working outcome |
 | --- | --- | --- |
 | 1 | [Foundation, Hallmark UI, and time tracking](phase-1.md) | **Complete** — persisted tracker; [handoff](handoffs/phase-1.md) |
-| 2 | [Asana and Notion](phase-2.md) | Imported tasks with reliable synchronization and time tracking |
+| 2 | [Asana and Notion](phase-2.md) | **Partial** — locally implemented; provider setup and acceptance pending; [handoff](handoffs/phase-2.md) |
 | 3 | [GitHub pull requests](phase-3.md) | Recorded work linked to PRs and external tasks without duplicate time |
 | 4 | [Billing, reporting, and release readiness](phase-4.md) | Reviewed, reproducible billing reports with evidence and exports |
 
@@ -65,4 +65,4 @@ Update the phase's status in this index, Serena `implementation_plan`, relevant 
 
 ## Current baseline
 
-The application in `source/` implements the Phase 1 tracker with independent account/session authentication and Hallmark amber tokens. The subsequent Supabase follow-up replaces runtime SQLite with private Postgres RPCs and GitHub-managed migrations; live activation remains pending external setup. See both handoffs and `source/README.md` for current contracts and checks. The Supabase GitHub deployment integration is infrastructure, separate from Phase 3's pull-request evidence feature. Provider integrations and billing/export features remain planned. Read `source/AGENTS.md` and installed Next.js documentation before coding.
+The application in `source/` implements the Phase 1 tracker with independent account/session authentication and Hallmark amber tokens. The subsequent Supabase follow-up replaces runtime SQLite with private Postgres RPCs and GitHub-managed migrations; live activation remains pending external setup. See both handoffs and `source/README.md` for current contracts and checks. The Supabase GitHub deployment integration is infrastructure, separate from Phase 3's pull-request evidence feature. Asana/Notion integrations and the separate durable sync worker are locally implemented; their acceptance and live activation remain pending. GitHub evidence and billing/export features remain planned. Read `source/AGENTS.md` and installed Next.js documentation before coding.

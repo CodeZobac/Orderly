@@ -1,11 +1,46 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Entry, Snapshot } from "@/lib/types";
 import { dailyTotals, dayKey, duration, weekDays } from "@/lib/time";
 import { Field, Submit } from "./fields";
+import BranchedMenu, { type BranchedMenuItem } from "./branched-menu";
+import {
+  Rocket01Icon,
+  Layers01Icon,
+  Download04Icon,
+  Settings02Icon,
+} from "@hugeicons/core-free-icons";
+
+const WORKSPACE_MENU: BranchedMenuItem[] = [
+  {
+    label: "Workspace",
+    children: [
+      { value: "/", href: "/", label: "Today", icon: Rocket01Icon },
+      {
+        value: "/projects",
+        href: "/projects",
+        label: "Projects",
+        icon: Layers01Icon,
+      },
+      {
+        value: "/timesheet",
+        href: "/timesheet",
+        label: "Timesheet",
+        icon: Download04Icon,
+      },
+      {
+        value: "/settings",
+        href: "/settings",
+        label: "Settings",
+        icon: Settings02Icon,
+      },
+    ],
+  },
+];
+import { Integrations } from "./integrations";
 
 type Input = Record<string, unknown>;
 function form(event: FormEvent<HTMLFormElement>) {
@@ -30,12 +65,18 @@ export default function Tracker() {
     [offset, setOffset] = useState(0),
     [retry, setRetry] = useState<Input | null>(null),
     [editing, setEditing] = useState<Entry | null>(null),
-    [undo, setUndo] = useState<Entry | null>(null);
+    [undo, setUndo] = useState<Entry | null>(null),
+    [zones, setZones] = useState<string[]>(["UTC"]);
   const accept = useCallback((value: Snapshot) => {
     setData(value);
     setOffset(value.now - Date.now());
   }, []);
+  const refreshing = useRef(false);
+  const lastRefreshAt = useRef(0);
   const refresh = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
+    lastRefreshAt.current = Date.now();
     try {
       const response = await fetch("/api/work", { cache: "no-store" });
       if (response.status === 401) {
@@ -52,18 +93,36 @@ export default function Tracker() {
           : "Unable to load saved data. Check your connection and retry.",
       );
     } finally {
+      refreshing.current = false;
       setLoading(false);
     }
   }, [accept]);
   useEffect(() => {
-    const initial = setTimeout(() => void refresh(), 0);
-    const timer = setInterval(() => void refresh(), 15000);
-    const focus = () => void refresh();
-    window.addEventListener("focus", focus);
+    const initial = setTimeout(() => {
+      // ICU timezone lists vary across runtimes; build suggestions after mount
+      // and deduplicate because some browsers already include UTC.
+      const supported =
+        typeof Intl.supportedValuesOf === "function"
+          ? Intl.supportedValuesOf("timeZone")
+          : [];
+      setZones([...new Set(["UTC", ...supported])]);
+      void refresh();
+    }, 0);
+    // Refresh on return to the app, never on an idle polling schedule.
+    // Focus and visibility often fire together; dedupe and limit these refreshes.
+    const onReturn = () => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastRefreshAt.current >= 60000
+      )
+        void refresh();
+    };
+    window.addEventListener("focus", onReturn);
+    document.addEventListener("visibilitychange", onReturn);
     return () => {
       clearTimeout(initial);
-      clearInterval(timer);
-      window.removeEventListener("focus", focus);
+      window.removeEventListener("focus", onReturn);
+      document.removeEventListener("visibilitychange", onReturn);
     };
   }, [refresh]);
   useEffect(() => {
@@ -320,22 +379,21 @@ export default function Tracker() {
         <Link className="wordmark" href="/">
           Orderly<span>Freelance time</span>
         </Link>
-        <nav aria-label="Workspace">
-          {[
-            ["/", "Today"],
-            ["/projects", "Projects"],
-            ["/timesheet", "Timesheet"],
-            ["/settings", "Settings"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={view === label ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <BranchedMenu
+          items={WORKSPACE_MENU}
+          defaultOpen={[0]}
+          activeValue={view === "Task" ? "/projects" : path}
+          aria-label="Workspace"
+          color="var(--color-ink)"
+          accentColor="var(--color-focus)"
+          lineColor="var(--color-rule)"
+          width={240}
+          rowHeight={44}
+          indent={32}
+          trunk={10}
+          radius={8}
+          fontSize={14}
+        />
         <div className="account">
           <p>{data.user.email}</p>
           <button
@@ -505,10 +563,25 @@ export default function Tracker() {
                       <Link href={`/tasks/${task.id}`}>
                         <strong>{task.name}</strong>
                         <span>{projectName(task.id)}</span>
+                        {task.external?.map((e, index) => (
+                          <span key={`${e.provider}-${index}`}>
+                            {e.provider === "asana" ? "Asana" : "Notion"} ·{" "}
+                            {e.status}
+                            {e.archived || !e.available
+                              ? " · archived / unavailable"
+                              : ""}
+                            {e.ambiguous && !e.explicit
+                              ? " · billing assignment required in Settings"
+                              : ""}
+                          </span>
+                        ))}
                       </Link>
                       <button
                         disabled={
-                          busy || !!retry || active?.task_id === task.id
+                          busy ||
+                          !!retry ||
+                          active?.task_id === task.id ||
+                          task.external?.some((e) => e.ambiguous && !e.explicit)
                         }
                         onClick={() =>
                           void save({
@@ -767,11 +840,9 @@ export default function Tracker() {
                     required
                   />
                   <datalist id="zones">
-                    {["UTC", ...Intl.supportedValuesOf("timeZone")].map(
-                      (zone) => (
-                        <option key={zone} value={zone} />
-                      ),
-                    )}
+                    {zones.map((zone) => (
+                      <option key={zone} value={zone} />
+                    ))}
                   </datalist>
                 </Field>
                 <Submit busy={busy} disabled={!!retry}>
@@ -779,15 +850,7 @@ export default function Tracker() {
                 </Submit>
               </form>
             </section>
-            <section>
-              <h2>Integrations</h2>
-              {["Asana", "Notion", "GitHub"].map((name) => (
-                <div className="integration" key={name}>
-                  <strong>{name}</strong>
-                  <span>Upcoming · not connected</span>
-                </div>
-              ))}
-            </section>
+            <Integrations data={data} refresh={refresh} />
           </>
         )}
         {editing && (

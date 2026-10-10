@@ -6,7 +6,21 @@ export type Project = {
   currency: string;
   rate: number;
 };
-export type Task = { id: string; project_id: string; name: string };
+export type Task = {
+  id: string;
+  project_id: string;
+  name: string;
+  external?: {
+    provider: string;
+    name: string;
+    url: string;
+    status: string;
+    archived: boolean;
+    ambiguous: boolean;
+    explicit: boolean;
+    available: boolean;
+  }[];
+};
 export type Entry = {
   id: string;
   task_id: string;

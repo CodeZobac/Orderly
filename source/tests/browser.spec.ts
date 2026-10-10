@@ -1,6 +1,153 @@
 import { test, expect, chromium } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
+import type { Integrations } from "../lib/integration-types";
+import type { Snapshot } from "../lib/types";
+
+test("Notion mapping, import status and timer controls with mocked provider responses", async ({
+  page,
+}) => {
+  const work: Snapshot = {
+    user: { email: "fixture@test.local", timezone: "UTC" },
+    clients: [{ id: "client", name: "Client" }],
+    projects: [
+      {
+        id: "project",
+        client_id: "client",
+        name: "Billing",
+        currency: "EUR",
+        rate: 7525,
+      },
+    ],
+    tasks: [],
+    entries: [],
+    audit: [],
+    now: Date.now(),
+  };
+  const state: Integrations = {
+    connections: [
+      {
+        id: "connection",
+        provider: "notion",
+        account_id: "workspace",
+        label: "Workspace",
+        status: "connected",
+        error: null,
+        generation: 1,
+      },
+    ],
+    sources: [],
+    tasks: [],
+    memberships: [],
+  };
+  await page.route("**/api/work", async (route) => {
+    if (route.request().method() === "POST") {
+      const input = route.request().postDataJSON();
+      if (input.action === "start")
+        work.entries.push({
+          id: "entry",
+          task_id: input.taskId,
+          start: Date.now() - 1000,
+          end: null,
+          rate: 7525,
+          currency: "EUR",
+          billable: 1,
+          notes: "",
+          version: 1,
+        });
+      if (input.action === "stop") {
+        work.entries[0].end = Date.now();
+        work.entries[0].version++;
+      }
+      await route.fulfill({
+        json: { result: { ok: true }, data: { ...work, now: Date.now() } },
+      });
+    } else await route.fulfill({ json: { ...work, now: Date.now() } });
+  });
+  await page.route("**/api/integrations", async (route) => {
+    if (route.request().method() === "GET")
+      return route.fulfill({ json: state });
+    const input = route.request().postDataJSON();
+    if (input.action === "discover")
+      return route.fulfill({
+        json: {
+          sources: [{ id: "source", name: "Tasks", properties: [] }],
+          cursor: null,
+          workspaces: false,
+        },
+      });
+    if (input.action === "inspect")
+      return route.fulfill({
+        json: {
+          id: "source",
+          name: "Tasks",
+          properties: [
+            { id: "title", name: "Renamed title", type: "title" },
+            { id: "status-id", name: "Progress", type: "status" },
+          ],
+        },
+      });
+    if (input.action === "map") {
+      expect(input.mapping).toEqual({ title: "title", status: "status-id" });
+      state.sources.push({
+        id: "mapped",
+        connection_id: "connection",
+        external_id: "source",
+        name: "Tasks",
+        project_id: "project",
+        mapping: input.mapping,
+        status: "synced",
+        error: null,
+        last_success: Date.now(),
+        webhook_id: null,
+      });
+      work.tasks.push({
+        id: "task",
+        project_id: "project",
+        name: "Imported task",
+        external: [
+          {
+            provider: "notion",
+            name: "Imported task",
+            url: "https://notion.so/page",
+            status: "Doing",
+            archived: false,
+            ambiguous: false,
+            explicit: false,
+            available: true,
+          },
+        ],
+      });
+    }
+    await route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Choose sources" }).click();
+  await page.getByRole("button", { name: "Tasks", exact: true }).click();
+  await page.getByLabel("Orderly billing project").selectOption("project");
+  await page.getByLabel("status property (optional)").selectOption("status-id");
+  for (const width of [320, 375, 414, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.getByRole("button", { name: "Save mapping & import" }).click();
+  await expect(page.getByText("Billing · synced")).toBeVisible();
+  await page.getByRole("button", { name: "Refresh sync status" }).click();
+  await page.goto("/");
+  await expect(page.getByText("Notion · Doing")).toBeVisible();
+  await page.getByRole("button", { name: "Start / resume" }).click();
+  await expect(
+    page.getByRole("button", { name: "Stop timer", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Stop timer", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Stop timer", exact: true }),
+  ).toHaveCount(0);
+});
 test("core journey, concurrency, persistence, ownership and responsive contrast", async ({
   page,
   browser,

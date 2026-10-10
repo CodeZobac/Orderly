@@ -20,6 +20,8 @@ export async function postgresFixture() {
         orderly_snapshot: ["owner"],
         orderly_mutate: ["owner", "input", "at_ms"],
         orderly_import: ["data"],
+        orderly_integrations: ["owner", "command", "input"],
+        orderly_sync: ["command", "input"],
       };
       const names = signatures[name];
       if (!names) throw new Error("Unknown fixture RPC");
