@@ -1,6 +1,6 @@
 # Phase 3 — GitHub pull requests and work evidence
 
-Status: planned. Execute in its own chat session after Phase 2.
+Status: implemented locally; authorized acceptance checks and live activation pending. See [handoff](handoffs/phase-3.md). Phase 3 was explicitly requested while Phase 2 live acceptance remained pending; do not begin Phase 4 automatically.
 
 ## Start here
 

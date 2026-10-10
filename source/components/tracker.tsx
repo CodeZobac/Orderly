@@ -41,6 +41,7 @@ const WORKSPACE_MENU: BranchedMenuItem[] = [
   },
 ];
 import { Integrations } from "./integrations";
+import { GitHubEvidence } from "./github";
 
 type Input = Record<string, unknown>;
 function form(event: FormEvent<HTMLFormElement>) {
@@ -549,9 +550,25 @@ export default function Tracker() {
               {view === "Task" ? (
                 <>
                   {selectedTask ? (
-                    entries(
-                      data.entries.filter((e) => e.task_id === selectedTask.id),
-                    )
+                    <>
+                      {entries(
+                        data.entries.filter(
+                          (e) => e.task_id === selectedTask.id,
+                        ),
+                      )}
+                      <GitHubEvidence
+                        data={data}
+                        refresh={refresh}
+                        taskId={selectedTask.id}
+                        onStart={async (taskId) =>
+                          save({
+                            action: active ? "switch" : "start",
+                            taskId,
+                            ...(active ? { entryId: active.id } : {}),
+                          })
+                        }
+                      />
+                    </>
                   ) : (
                     <p>This task does not exist in your workspace.</p>
                   )}
@@ -611,6 +628,9 @@ export default function Tracker() {
               )}
             </section>
           </>
+        )}
+        {view === "Today" && (
+          <GitHubEvidence data={data} refresh={refresh} remindersOnly />
         )}
         {view === "Projects" && (
           <>
@@ -851,6 +871,18 @@ export default function Tracker() {
               </form>
             </section>
             <Integrations data={data} refresh={refresh} />
+            <GitHubEvidence
+              data={data}
+              refresh={refresh}
+              settings
+              onStart={async (taskId) =>
+                save({
+                  action: active ? "switch" : "start",
+                  taskId,
+                  ...(active ? { entryId: active.id } : {}),
+                })
+              }
+            />
           </>
         )}
         {editing && (

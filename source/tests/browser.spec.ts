@@ -3,6 +3,204 @@ import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import type { Integrations } from "../lib/integration-types";
 import type { Snapshot } from "../lib/types";
+import type { GitHubSnapshot } from "../lib/github-types";
+
+test("GitHub task evidence, explicit suggestions and timer selection with mocked providers", async ({
+  page,
+}) => {
+  const start = Date.now() - 3600000;
+  const work: Snapshot = {
+    user: { email: "fixture@test.local", timezone: "UTC" },
+    clients: [{ id: "client", name: "Client" }],
+    projects: [
+      {
+        id: "project",
+        client_id: "client",
+        name: "Billing",
+        currency: "EUR",
+        rate: 6000,
+      },
+    ],
+    tasks: [
+      {
+        id: "asana-task",
+        project_id: "project",
+        name: "Design Asana",
+        external: [
+          {
+            provider: "asana",
+            name: "Board design",
+            url: "https://app.asana.com/0/1/123456",
+            status: "Done",
+            archived: false,
+            ambiguous: false,
+            explicit: true,
+            available: true,
+          },
+        ],
+      },
+      { id: "notion-task", project_id: "project", name: "Notion review" },
+    ],
+    entries: [
+      {
+        id: "entry",
+        task_id: "asana-task",
+        start,
+        end: start + 2700000,
+        rate: 6000,
+        currency: "EUR",
+        billable: 1,
+        notes: "Recorded work",
+        version: 1,
+      },
+    ],
+    audit: [],
+    now: Date.now(),
+  };
+  const evidence: GitHubSnapshot = {
+    connections: [
+      {
+        id: "connection",
+        provider: "github",
+        account_id: "123",
+        label: "Fixture",
+        status: "connected",
+        error: null,
+        generation: 1,
+      },
+    ],
+    sources: [
+      {
+        id: "source",
+        connection_id: "connection",
+        external_id: "456",
+        name: "fixture/repo",
+        project_id: "project",
+        mapping: {},
+        status: "synced",
+        error: null,
+        last_success: Date.now(),
+        webhook_id: null,
+      },
+    ],
+    pulls: [
+      {
+        id: "pr",
+        source_id: "source",
+        available: true,
+        metadata: {
+          id: "1000",
+          number: 1,
+          url: "https://github.com/fixture/repo/pull/1",
+          title: "Deliver design",
+          author: "fixture",
+          branch: "task-123456",
+          base: "main",
+          state: "merged",
+          createdAt: start - 86400000 * 3,
+          updatedAt: start,
+          closedAt: start,
+          mergedAt: start,
+        },
+      },
+    ],
+    links: [
+      {
+        pr_id: "pr",
+        task_id: "asana-task",
+        status: "suggested",
+        reason: "asana ID: 123456",
+      },
+      {
+        pr_id: "pr",
+        task_id: "notion-task",
+        status: "suggested",
+        reason: "notion ID: 123456",
+      },
+    ],
+    events: [{ pr_id: "pr", kind: "merged", at: start }],
+    audit: [],
+  };
+  await page.route("**/api/work", async (route) => {
+    if (route.request().method() === "POST") {
+      const input = route.request().postDataJSON();
+      if (input.action === "start")
+        work.entries.push({
+          id: "active",
+          task_id: input.taskId,
+          start: Date.now() - 1000,
+          end: null,
+          rate: 6000,
+          currency: "EUR",
+          billable: 1,
+          notes: "",
+          version: 1,
+        });
+      return route.fulfill({
+        json: { result: { ok: true }, data: { ...work, now: Date.now() } },
+      });
+    }
+    await route.fulfill({ json: { ...work, now: Date.now() } });
+  });
+  await page.route("**/api/integrations", (route) =>
+    route.fulfill({
+      json: { connections: [], sources: [], tasks: [], memberships: [] },
+    }),
+  );
+  await page.route("**/api/github", async (route) => {
+    if (route.request().method() === "POST") {
+      const input = route.request().postDataJSON();
+      if (input.action === "link")
+        evidence.links.find((l) => l.task_id === input.taskId)!.status =
+          "confirmed";
+      return route.fulfill({ json: input.taskId || {} });
+    }
+    await route.fulfill({ json: evidence });
+  });
+  await page.goto("/settings");
+  const card = page
+    .locator(".evidence-card")
+    .filter({ hasText: "Deliver design" });
+  await expect(
+    card.getByText("Several exact matches — confirm each intended link"),
+  ).toBeVisible();
+  await expect(
+    card.getByText("Review reminder: this PR has no confirmed task link."),
+  ).toBeVisible();
+  await card
+    .getByRole("button", { name: "Confirm link", exact: true })
+    .first()
+    .click();
+  await expect(card.getByText("00:45:00 recorded on task")).toBeVisible();
+  expect(work.entries).toHaveLength(1);
+  await card
+    .getByRole("combobox", { name: "Record time on a canonical task" })
+    .selectOption("asana-task");
+  await card
+    .getByRole("button", { name: "Start timer on selected task" })
+    .click();
+  expect(work.entries[1].task_id).toBe("asana-task");
+  await page.goto("/tasks/asana-task");
+  await expect(
+    page.getByRole("heading", { name: "Linked pull requests" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "00:45:00 recorded on this task, counted once across all linked PRs.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "asana: Board design" }),
+  ).toBeVisible();
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+});
 
 test("Notion mapping, import status and timer controls with mocked provider responses", async ({
   page,

@@ -16,7 +16,15 @@ async function identity() {
 export async function GET() {
   try {
     const { db, owner } = await identity();
-    return Response.json(await integrationRpc(db, owner, "list"), {
+    const state = await integrationRpc<
+      import("@/lib/integration-types").Integrations
+    >(db, owner, "list");
+    state.connections = state.connections.filter(
+      (c) => String(c.provider) !== "github",
+    );
+    const ids = new Set(state.connections.map((c) => c.id));
+    state.sources = state.sources.filter((s) => ids.has(s.connection_id));
+    return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

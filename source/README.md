@@ -1,6 +1,6 @@
 # Orderly
 
-Phase 1 is a solo freelancer tracker: private account, clients/projects/tasks, one persisted timer, manual intervals, corrections with audit history, and timezone-aware daily/weekly totals. Phase 2 adds Asana and Notion OAuth, task mapping/imports and durable synchronization; live activation and acceptance verification are pending. GitHub and billing exports remain upcoming phases. See the [Phase 2 handoff](../docs/implementation/handoffs/phase-2.md) for provider setup and worker operation.
+Phase 1 is a solo freelancer tracker: private account, clients/projects/tasks, one persisted timer, manual intervals, corrections with audit history, and timezone-aware daily/weekly totals. Phase 2 adds Asana and Notion OAuth, task mapping/imports and durable synchronization; live activation and acceptance verification are pending. Phase 3 adds a GitHub App, repository mapping, PR imports, explicit task links, evidence timelines and review reminders; live setup and acceptance are pending. Billing exports remain Phase 4. See the [Phase 2 handoff](../docs/implementation/handoffs/phase-2.md) and [Phase 3 handoff](../docs/implementation/handoffs/phase-3.md) for provider setup and worker operation.
 
 ## Local setup
 
@@ -55,6 +55,15 @@ For production: deploy migrations through GitHub, configure server secrets and `
 
 `lib/db.ts`: private Supabase RPC transport; `lib/auth.ts`: credentials/sessions; `lib/domain.ts`: owned RPC calls; `supabase/migrations/`: transactional timers/audit/idempotency; `lib/time.ts`: exact durations/date boundaries; `lib/http.ts`: origin/JSON/error handling; `lib/types.ts`: shared contracts. `components/tracker.tsx` owns the workspace views; `components/fields.tsx` provides shared labelled fields and submit states. Routes: `/` Today, `/projects`, `/tasks/:id`, `/timesheet`, `/settings`; `/api/auth`, `/api/work`.
 
-Hallmark custom amber Workbench system: `tokens.css` is the portable source, imported by `app/globals.css`. Geist display/body and Geist Mono tabular time, light warm paper, restrained amber buttons with dark text, dark amber focus. `.hallmark/log.json` and `docs/implementation/handoffs/phase-1.md` preserve design/verification decisions. Preserve tokens in later phases. Settings now configures Asana/Notion sources and billing links; imported tasks use provider/status badges. GitHub still says “Upcoming · not connected”.
+Hallmark custom amber Workbench system: `tokens.css` is the portable source, imported by `app/globals.css`. Geist display/body and Geist Mono tabular time, light warm paper, restrained amber buttons with dark text, dark amber focus. `.hallmark/log.json` and `docs/implementation/handoffs/phase-1.md` preserve design/verification decisions. Preserve tokens in later phases. Settings now configures Asana/Notion sources and billing links; imported tasks use provider/status badges. GitHub has separate repository mappings and PR evidence controls.
 
 Private tables live in `orderly_private` with RLS enabled and no public policies. Composite ownership foreign keys prevent cross-user relationships. Exposed `public.orderly_*` RPCs use SECURITY INVOKER, an empty search path, and service-role-only EXECUTE grants. Orderly does not use Supabase Auth identities or trust a browser-supplied owner ID.
+
+# GitHub work evidence
+
+Configure the server-only GitHub App values in `.env.example`, deploy the Phase 3 migration through the Supabase GitHub integration, and run the existing `npm run sync:worker` process. In Settings, install the App on selected repositories, authorize it, choose an accessible installation, and map a repository to an owned billing project. PR suggestions require confirmation. A PR timer uses an explicitly selected canonical task; standalone PRs can create a local task with an explicit project.
+
+PR links and events never create, multiply, reattribute, or stop recorded time. Task pages show recorded history and PR/source evidence. Today reminds you about recorded tasks without PR links; the existing long-timer reminder remains advisory. GitHub setup, exact permissions, HTTPS callbacks/webhooks, recovery, and verification limits are in the [Phase 3 handoff](../docs/implementation/handoffs/phase-3.md).
+
+When tests are explicitly authorized, `npm run test:github` runs the new linking/ownership/deduplication fixtures and `npm run test:browser` includes the mocked task → PR → recorded-time journey. These fixtures were authored but not executed during Phase 3 implementation.
+

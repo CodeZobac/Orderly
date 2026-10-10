@@ -1,3 +1,4 @@
+import { workGitHub, type GitHubWork } from "./github";
 import { randomBytes, randomUUID } from "node:crypto";
 import { tokenHash } from "./auth";
 import type { Database } from "./db";
@@ -235,7 +236,7 @@ export async function integrationAction(
 type Work = {
   job: { id: string; lease: string; cursor: string | null; attempts: number };
   source: Source;
-  connection: Connection & { credentials: string };
+  connection: (Connection & { credentials: string }) | GitHubWork["connection"];
 };
 // One invocation handles one page. PostgreSQL persists progress between invocations.
 // Three-minute connection lease serializes refresh across workers; writes are fenced.
@@ -244,6 +245,12 @@ export async function workOnce(db: Database) {
   if (!work) return false;
   const { job, source, connection: c } = work,
     fence = { jobId: job.id, lease: job.lease };
+  if (c.provider === "github")
+    return workGitHub(db, {
+      job,
+      source: source as GitHubWork["source"],
+      connection: c,
+    });
   try {
     let credentials = decrypt<Credentials>(c.credentials);
     let refreshed = false;
