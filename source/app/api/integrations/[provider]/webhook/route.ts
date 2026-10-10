@@ -4,6 +4,7 @@ import { decrypt, encrypt, signature } from "@/lib/integration-crypto";
 import { provider, syncRpc } from "@/lib/integrations";
 import { failure } from "@/lib/http";
 import { Problem } from "@/lib/problem";
+import { captureNotionToken } from "@/lib/notion-webhook-setup";
 export async function POST(
   request: Request,
   context: { params: Promise<{ provider: string }> },
@@ -52,13 +53,18 @@ export async function POST(
       });
     } else {
       const value = JSON.parse(raw);
-      // Initial subscription verification is not an event and changes no state.
-      // The operator copies this token from their restricted request inspector.
-      if (typeof value.verification_token === "string" && !value.id)
+      // Only a private operator-created capability may capture unsigned setup.
+      if (typeof value.verification_token === "string" && !value.id) {
+        await captureNotionToken(
+          db,
+          new URL(request.url).searchParams.get("setup"),
+          value.verification_token,
+        );
         return new Response(null, { status: 204 });
+      }
       const secret = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN;
-      // Notion setup is manual: read the initial token through the restricted
-      // deployment request inspector, verify in the portal and set the env secret.
+      // A captured unsigned token is never automatically trusted. The operator
+      // verifies in Notion and explicitly configures the server HMAC secret.
       if (!secret)
         throw new Problem(
           "Configure the Notion webhook verification token on the server.",

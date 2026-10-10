@@ -10,6 +10,7 @@ import type {
   SourceOption,
 } from "@/lib/integration-types";
 import { Field, Submit } from "./fields";
+import { NotionWebhookSetup } from "./notion-webhook-setup";
 
 async function post(
   input: Record<string, unknown>,
@@ -193,6 +194,7 @@ export function Integrations({
           </button>
         ))}
       </div>
+      <NotionWebhookSetup />
       {!state && <p role="status">Loading connections…</p>}
       {state && !state.connections.length && (
         <p>
@@ -506,10 +508,6 @@ export function Integrations({
         setup in the developer portal. Disconnect removes stored credentials and
         retains recorded work.
       </p>
-      <div className="integration">
-        <strong>GitHub</strong>
-        <span>Upcoming · not connected</span>
-      </div>
     </section>
   );
 }

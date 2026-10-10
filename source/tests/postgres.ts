@@ -23,6 +23,7 @@ export async function postgresFixture() {
         orderly_integrations: ["owner", "command", "input"],
         orderly_sync: ["command", "input"],
         orderly_github: ["owner", "command", "input"],
+        orderly_notion_setup: ["owner", "command", "input"],
         orderly_board_sync: ["command", "input"],
       };
       const names = signatures[name];
