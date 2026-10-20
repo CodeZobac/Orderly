@@ -104,3 +104,21 @@ Summarize Task name, Status, Assigned to and Due date using their original Notio
 Connections replaces the Notion task-by-task billing forms with a compact source summary and a native review dialog. Reuse the existing paper/gold modal and pink blurred backdrop. Three semantic groups combine symbols, labels and counts: emerald Ready, gold Pending review, berry Discarded. Counts stay unset until the initial scan and analysis finish; errors offer manual review. Keep category detail behind Expand review, compact task rows with visible decision labels, and Accept all controls for pending/discarded groups. Draft decisions remain in their saved group while editing to preserve keyboard focus. Apply changes is the only manual-save action; dismissal cancels drafts. Existing automatic green decisions remain saved. Preserve historical task context in reports and active timer stop controls.
 
 A standalone `source/components/notion-import-review.preview.html` demonstrates the eight interaction states with labelled sample content and no provider requests. This is a CSS/layout preview, not evidence of authenticated application or database acceptance.
+
+## Global search, filterable selects and project-first timer
+
+2026-10-21. Every former native `<select>` uses the shared `Select` (`source/components/select.tsx`): an editable WAI-ARIA combobox with keyword filtering (case- and accent-insensitive, every typed word must match), project group headings, amber `<mark>` match highlights, a plum check on the chosen row, berry hints and disabled rows explained by an emerald "Running" pill. Field: cream fill, 1.5px plum border, soft rose (#F7DCEB) ring while open. Popover: paper surface, plum outline, 12px corners, float shadow, gold card-band footer with keycaps and "n of m". It is fixed-positioned so dialog bodies never clip it, and flips upward when space is short. A hidden input keeps `name`, so FormData submissions, `required` validation (custom validity on the visible field) and form reset behave as before.
+
+`Kbd`/`ModKbd` (`source/components/kbd.tsx`) render Geist Mono keycaps on paper with a honey border. ⌘ appears on Apple platforms and Ctrl elsewhere; the server renders Ctrl. The rail shows a Search trigger under the wordmark (paper fill, rail-rule outline, rail-hover on hover). The keycap hint is hidden on coarse pointers.
+
+⌘K / Ctrl K opens the command palette (`source/components/command-palette.tsx`) from anywhere. It reuses the native modal pattern with the pink blurred backdrop, gold header and footer bands, and no entrance animation. It searches clients, projects and tasks client-side from the workspace snapshot. An empty query lists Running now, Projects and Clients; a typed query lists Tasks, Projects and Clients. Arrow keys move between rows, and Tab or ArrowRight cycles a row's actions. Enter runs the highlighted action, and the footer names it or explains why it is unavailable. Statuses: emerald Running, indigo Done, burnt-orange Needs review. Micro actions:
+
+- Open task: Start timer and Open task.
+- Running task: Stop timer and Open task.
+- Finished task (time logged and no running timer): Billable summary, Resume timer and Open task.
+- Project: Billable items and Track time.
+- Client: Billable items.
+
+Billable links go to `/billing?clientId&projectId&from&task`. Billing seeds its filters, widens `from` to the earliest logged entry when that is older than the current month, runs a read-only preview and highlights the task's subtotal and lines with an amber edge. A link never saves a report.
+
+Today/Task timer is project-first. "Your projects" replaces the task list, with clean selectable cards (client, task count, Geist Mono rate, emerald running task names, Running/Selected pills) and a Billable items link. The selected card gets a plum outline, a 4px plum inset edge and a rail-pink fill. The selected project, remembered per browser, scopes the start form's task dropdown. Choosing a project focuses that dropdown on fine pointers and only scrolls on touch. Starting a timer clears the task but keeps the project, so timers can be started across projects back and forth. The account timer limit still applies. Imported task status and assignee now appear as dropdown hints. No new palette values or tokens.
