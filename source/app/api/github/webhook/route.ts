@@ -2,6 +2,8 @@ import { database } from "@/lib/db";
 import { signature } from "@/lib/integration-crypto";
 import { failure } from "@/lib/http";
 import { Problem } from "@/lib/problem";
+import { scheduleSync } from "@/lib/sync-runner";
+export const maxDuration = 300;
 export async function POST(request: Request) {
   try {
     const raw = await request.text();
@@ -56,7 +58,8 @@ export async function POST(request: Request) {
       !Number.isSafeInteger(value.sender?.id)
     )
       throw new Problem("Invalid authorization subject.");
-    await database().rpc("orderly_sync", {
+    const db = database();
+    await db.rpc("orderly_sync", {
       command: "github_event",
       input: {
         event,
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
         removed: (value.repositories_removed || []).map((r) => String(r.id)),
       },
     });
+    scheduleSync(db);
     return new Response(null, { status: 204 });
   } catch (error) {
     return failure(error);

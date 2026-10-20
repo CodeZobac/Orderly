@@ -5,6 +5,8 @@ import { provider, syncRpc } from "@/lib/integrations";
 import { failure } from "@/lib/http";
 import { Problem } from "@/lib/problem";
 import { captureNotionToken } from "@/lib/notion-webhook-setup";
+import { scheduleSync } from "@/lib/sync-runner";
+export const maxDuration = 300;
 export async function POST(
   request: Request,
   context: { params: Promise<{ provider: string }> },
@@ -93,6 +95,8 @@ export async function POST(
         await syncRpc(db, "event", { connectionId: c.id, eventId: value.id });
     }
     // Receipt and follow-up jobs committed before acknowledging delivery.
+    // Verification handshakes return earlier and never trigger queue work.
+    scheduleSync(db);
     return new Response(null, { status: 204 });
   } catch (error) {
     return failure(error);

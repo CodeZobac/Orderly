@@ -76,7 +76,10 @@ export function NotionSourceDialog({
   );
   const [projectId, setProjectId] = useState(existing?.project_id || "");
   const [savedSourceId, setSavedSourceId] = useState<string | null>(null);
-  const [result, setResult] = useState<Source | null>(null);
+  const [confirmed, setResult] = useState<Source | null>(null);
+  // Follow Connections' fresh state after the first confirmed save refresh.
+  const result =
+    confirmed && existing?.id === confirmed.id ? existing : confirmed;
 
   useEffect(() => {
     const node = dialog.current;
@@ -563,9 +566,11 @@ export function NotionSourceDialog({
                 {result
                   ? result.status === "synced" && result.last_success
                     ? "Synced"
-                    : ["queued", "syncing"].includes(result.status)
-                      ? "Import queued"
-                      : "Import needs attention"
+                    : result.status === "syncing"
+                      ? "Importing tasks…"
+                      : result.status === "queued"
+                        ? "Import queued"
+                        : "Import needs attention"
                   : saving
                     ? "Loading import status…"
                     : "Settings saved"}

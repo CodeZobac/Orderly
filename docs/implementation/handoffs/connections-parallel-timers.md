@@ -51,3 +51,17 @@ Supply valid server configuration, finish Notion webhook verification, and run t
 ## Verification record
 
 Final command outcomes are recorded in the task completion message and Serena `task_status`. SQL compilation checks only schema/function syntax in an isolated database; they do not exercise application scenarios, concurrency, or live deployment.
+
+## Vercel queue wake-up follow-up — 2026-10-20
+
+Read-only production inspection confirmed all seven migrations deployed. The matching IN Sintonia sources were connected, with untouched queued jobs: attempts 0, no lease, no successful import. The queue existed, but no route invoked its worker. A configured webhook alone only persisted more queue work. This is distinct from a stale badge.
+
+The local fix adds `lib/sync-runner.ts`, using Next's installed `after()` API to run the existing fenced worker after responses. Successful source map/resync and verified provider/GitHub webhook routes schedule a batch. Unsigned Notion verification and Asana handshake branches return before scheduling. Scheduling occurs only after durable enqueue commits. No SQL or credential configuration changes are required.
+
+Batch limits: 20 worker pages and no new page starts after two minutes; route `maxDuration=300` leaves room for in-flight I/O. Same-process wakes coalesce and retain a concurrent wake flag; Postgres leases protect across instances and the independent CLI worker. Only fixed messages/page counts are logged. Failures do not change the already-committed mapping response into an apparent save failure; jobs retain their existing retries/backoff/fences.
+
+Authenticated, same-origin `POST /api/integrations` with `{"action":"run"}` wakes the same shared queue without accepting owner/job IDs from the browser. Connections reads status every five seconds while visible and on focus. It wakes eligible work every fifteen seconds while pending, or every minute when idle; existing claim logic still enforces eligibility/backoff and fifteen-minute reconciliation. Out-of-order reads cannot replace a later source-list response. Source state changes refresh the workspace, and the Notion dialog follows fresh parent source state after the initial confirmed-save refresh. Syncing shows Importing tasks rather than freezing at Import queued.
+
+After deployment, opening Connections wakes previously stranded imports; no reconnect/remap or new verification token is needed. Bounded after-callbacks are not a permanent scheduler: large imports, unattended retries after failure, and reconciliation with no request traffic still require the supervised `npm run sync:worker` process or a separately configured scheduler. No always-running Vercel process or paid cron schedule is implied by this fix.
+
+No tests/build/lint/typecheck or live job execution was performed for this follow-up, per the user's instruction. Production queue/migration inspection was read-only. The fix is not deployed merely because its code exists locally. Deployment acceptance: confirm sync batch logs, worker lease/attempt/last_success changes, imported task counts, queue deletion at full completion, refreshed dialog badge, duplicate webhook fencing, and retry recovery. Do not mark Synced before the canonical scan completes.

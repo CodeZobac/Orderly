@@ -3,6 +3,8 @@ import { authenticate } from "@/lib/auth";
 import { database } from "@/lib/db";
 import { body, failure, originCheck } from "@/lib/http";
 import { githubAction, githubRpc } from "@/lib/github";
+import { scheduleSync } from "@/lib/sync-runner";
+export const maxDuration = 300;
 async function identity() {
   const db = database();
   return {
@@ -27,7 +29,10 @@ export async function POST(request: Request) {
   try {
     originCheck(request);
     const { db, owner } = await identity();
-    return Response.json(await githubAction(db, owner, await body(request)), {
+    const input = await body(request);
+    const result = await githubAction(db, owner, input);
+    if (input.action === "map" || input.action === "resync") scheduleSync(db);
+    return Response.json(result, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

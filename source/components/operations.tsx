@@ -44,9 +44,10 @@ export function Operations() {
         </button>
       </div>
       <p>
-        Inspect persisted retries and leases. The separate sync worker must run
-        under a supervisor. A successful page read does not prove a complete
-        import.
+        Inspect persisted retries and leases. Imports and verified webhooks
+        start background processing. A supervised worker handles unattended
+        retries and reconciliation. A successful page read does not prove a
+        complete import.
       </p>
       {error && (
         <p role="alert" className="notice error">

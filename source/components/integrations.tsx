@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Snapshot } from "@/lib/types";
 import type {
@@ -19,7 +19,9 @@ function importStatus(source?: Source) {
   if (!source) return { label: "Accessible", tone: "available" };
   if (source.status === "synced" && source.last_success)
     return { label: "Synced", tone: "synced" };
-  if (["queued", "syncing"].includes(source.status))
+  if (source.status === "syncing")
+    return { label: "Importing tasks…", tone: "queued" };
+  if (source.status === "queued")
     return { label: "Import queued", tone: "queued" };
   return { label: "Selected for import", tone: "selected" };
 }
@@ -27,11 +29,13 @@ function importStatus(source?: Source) {
 async function post(
   input: Record<string, unknown>,
   path = "/api/integrations",
+  signal?: AbortSignal,
 ) {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    signal,
   });
   const value = await response.json();
   if (!response.ok)
@@ -53,6 +57,7 @@ export function Integrations({
   } | null>(null);
   const [state, setState] = useState<State | null>(null),
     [error, setError] = useState(""),
+    [pollError, setPollError] = useState(""),
     [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Connection | null>(null),
     [options, setOptions] = useState<SourceOption[]>([]),
@@ -61,19 +66,94 @@ export function Integrations({
     [workspace, setWorkspace] = useState<string | undefined>(),
     [workspaces, setWorkspaces] = useState(false),
     [mapping, setMapping] = useState<Mapping>({});
-  const load = useCallback(async () => {
-    const response = await fetch("/api/integrations", { cache: "no-store" });
+  const loadVersion = useRef(0);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const version = ++loadVersion.current;
+    const response = await fetch("/api/integrations", {
+      cache: "no-store",
+      signal,
+    });
     const value = await response.json();
     if (!response.ok) throw new Error(value.error);
-    setState(value);
+    if (!signal?.aborted && version === loadVersion.current) setState(value);
     return value as State;
   }, []);
   useEffect(() => {
-    const start = setTimeout(() => {
-      void load().catch((e) => setError(e.message));
-    }, 0);
-    return () => clearTimeout(start);
-  }, [load]);
+    let cancelled = false;
+    let pending = false;
+    let lastWake = 0;
+    let lastState = "";
+    const controller = new AbortController();
+    async function poll() {
+      if (pending || document.visibilityState !== "visible") return;
+      pending = true;
+      try {
+        const latest = await load(controller.signal);
+        if (cancelled) return;
+        const signature = JSON.stringify(
+          latest.sources.map((source) => [
+            source.id,
+            source.status,
+            source.last_success,
+            source.project_id,
+          ]),
+        );
+        if (signature !== lastState) {
+          lastState = signature;
+          await refresh();
+        }
+        if (cancelled) return;
+        const connected = new Set(
+          latest.connections
+            .filter((connection) => connection.status === "connected")
+            .map((connection) => connection.id),
+        );
+        const eligible = latest.sources.filter(
+          (source) =>
+            connected.has(source.connection_id) &&
+            !["remap", "inaccessible", "reconnect", "disconnected"].includes(
+              source.status,
+            ),
+        );
+        const queued = eligible.some((source) =>
+          ["queued", "syncing", "error"].includes(source.status),
+        );
+        if (
+          eligible.length &&
+          Date.now() - lastWake >= (queued ? 15000 : 60000)
+        ) {
+          await post({ action: "run" }, "/api/integrations", controller.signal);
+          lastWake = Date.now();
+        }
+        if (!cancelled) setPollError("");
+      } catch (reason) {
+        if (!cancelled)
+          setPollError(
+            reason instanceof Error
+              ? reason.message
+              : "Unable to refresh import progress.",
+          );
+      } finally {
+        pending = false;
+      }
+    }
+    const onReturn = () => {
+      void poll();
+    };
+    const start = setTimeout(onReturn, 0);
+    const interval = setInterval(onReturn, 5000);
+    window.addEventListener("focus", onReturn);
+    document.addEventListener("visibilitychange", onReturn);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      loadVersion.current++;
+      clearTimeout(start);
+      clearInterval(interval);
+      window.removeEventListener("focus", onReturn);
+      document.removeEventListener("visibilitychange", onReturn);
+    };
+  }, [load, refresh]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -232,6 +312,11 @@ export function Integrations({
           {error}
         </p>
       )}
+      {pollError && (
+        <p role="status" className="error">
+          {pollError}
+        </p>
+      )}
       <div className="actions">
         {(["asana", "notion"] as Provider[]).map((p) => (
           <button
@@ -247,9 +332,9 @@ export function Integrations({
       <NotionWebhookSetup />
       {state && !state.notionWebhookConfigured && (
         <p role="status">
-          Notion live updates need webhook setup on the server. With the sync
-          worker running, periodic synchronization still detects changes, but
-          timers may be delayed.
+          Notion live updates need webhook setup on the server. Imports can run
+          now, but changes made while Orderly is closed may be delayed until the
+          next background reconciliation.
         </p>
       )}
       {!state && <p role="status">Loading connections…</p>}
@@ -611,9 +696,10 @@ export function Integrations({
       <details className="integration-sync-help">
         <summary>About synchronization</summary>
         <p className="muted">
-          Sync runs while the server worker is active. Notion webhooks require
-          setup in the developer portal. Disconnect removes stored credentials
-          and retains recorded work.
+          Imports and verified webhook events start background synchronization.
+          This page refreshes progress automatically. A scheduled worker handles
+          unattended reconciliation and retries when no requests arrive.
+          Disconnecting retains recorded work.
         </p>
       </details>
     </section>

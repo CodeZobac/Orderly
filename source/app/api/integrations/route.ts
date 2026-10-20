@@ -3,6 +3,8 @@ import { authenticate } from "@/lib/auth";
 import { database } from "@/lib/db";
 import { body, failure, originCheck } from "@/lib/http";
 import { integrationAction, integrationRpc } from "@/lib/integrations";
+import { scheduleSync } from "@/lib/sync-runner";
+export const maxDuration = 300;
 async function identity() {
   const db = database();
   return {
@@ -37,10 +39,19 @@ export async function POST(request: Request) {
   try {
     originCheck(request);
     const { db, owner } = await identity();
-    return Response.json(
-      await integrationAction(db, owner, await body(request)),
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    const input = await body(request);
+    if (input.action === "run") {
+      // Authentication/origin checks above protect this queue wake-up. No
+      // browser-supplied owner or job IDs reach the service-only worker.
+      scheduleSync(db);
+      return Response.json(
+        { accepted: true },
+        { status: 202, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    const result = await integrationAction(db, owner, input);
+    if (input.action === "map" || input.action === "resync") scheduleSync(db);
+    return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return failure(error);
   }
