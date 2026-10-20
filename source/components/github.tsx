@@ -136,7 +136,10 @@ export function GitHubEvidence({
     event.preventDefault();
     return Object.fromEntries(new FormData(event.currentTarget));
   };
-  const active = data.entries.find((e) => e.end === null);
+  const activeTimers = data.entries.filter((e) => e.end === null);
+  const timerLimit =
+    data.user.timer_limit === undefined ? 2 : data.user.timer_limit;
+  const atCapacity = timerLimit !== null && activeTimers.length >= timerLimit;
   function pullCard(pr: PullRequest) {
     const links = state!.links.filter((l) => l.pr_id === pr.id),
       confirmed = links.filter((l) => l.status === "confirmed"),
@@ -282,16 +285,20 @@ export function GitHubEvidence({
               <select name="taskId" required defaultValue={taskId || ""}>
                 <option value="">Choose a confirmed linked task</option>
                 {confirmed.map((l) => (
-                  <option key={l.task_id} value={l.task_id}>
+                  <option
+                    key={l.task_id}
+                    value={l.task_id}
+                    disabled={activeTimers.some(
+                      (entry) => entry.task_id === l.task_id,
+                    )}
+                  >
                     {taskName(l.task_id)}
                   </option>
                 ))}
               </select>
             </Field>
-            <Submit busy={busy}>
-              {active
-                ? "Switch timer to selected task"
-                : "Start timer on selected task"}
+            <Submit busy={busy} disabled={atCapacity}>
+              Start timer on selected task
             </Submit>
           </form>
         )}
@@ -360,7 +367,7 @@ export function GitHubEvidence({
       <section className="github-evidence">
         <div className="section-head">
           <h2>Evidence review reminders</h2>
-          <Link href="/settings">Review GitHub links</Link>
+          <Link href="/settings/connections">Review GitHub links</Link>
         </div>
         {error ? (
           <p className="error" role="alert">
@@ -426,7 +433,7 @@ export function GitHubEvidence({
                 })
               }
             >
-              Authorize GitHub App
+              Connect / reconnect GitHub
             </button>
             <button
               disabled={busy}
@@ -437,7 +444,7 @@ export function GitHubEvidence({
                 })
               }
             >
-              Install App on selected repositories
+              Select repositories
             </button>
           </div>
           {state?.connections.map((c) => (
@@ -604,7 +611,7 @@ export function GitHubEvidence({
         ) : (
           <p className="muted">
             {taskId
-              ? "No PR evidence linked yet. Link this task from GitHub in Settings."
+              ? "No PR evidence linked yet. Link this task from GitHub in Connections."
               : "No imported pull requests yet."}
           </p>
         )

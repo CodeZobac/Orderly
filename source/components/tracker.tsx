@@ -1,10 +1,16 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useWorkspace } from "./workspace-provider";
+import {
+  ElapsedTimer,
+  LongTimerNotice,
+  useWorkspaceDate,
+} from "./workspace-clock";
 import type { FormEvent } from "react";
-import type { Entry, Snapshot } from "@/lib/types";
-import { dailyTotals, dayKey, duration, weekDays } from "@/lib/time";
+import type { Entry } from "@/lib/types";
+import { dayKey, duration, weekDays } from "@/lib/time";
 import { Field, Submit } from "./fields";
 import BranchedMenu, { type BranchedMenuItem } from "./branched-menu";
 import {
@@ -32,16 +38,38 @@ const WORKSPACE_MENU: BranchedMenuItem[] = [
         icon: Download04Icon,
       },
       {
+        value: "/billing",
+        href: "/billing",
+        label: "Billing",
+        icon: Download04Icon,
+      },
+    ],
+  },
+  {
+    label: "Settings",
+    children: [
+      {
         value: "/settings",
         href: "/settings",
-        label: "Settings",
+        label: "General",
         icon: Settings02Icon,
+      },
+      {
+        value: "/settings/connections",
+        href: "/settings/connections",
+        label: "Connections",
+        icon: Layers01Icon,
       },
     ],
   },
 ];
 import { Integrations } from "./integrations";
 import { GitHubEvidence } from "./github";
+import { Billing } from "./billing";
+import { Operations } from "./operations";
+import { Logo } from "./logo";
+import { WorkspaceLoader } from "./workspace-loader";
+import { TimerPreferences } from "./timer-preferences";
 
 type Input = Record<string, unknown>;
 function form(event: FormEvent<HTMLFormElement>) {
@@ -56,135 +84,50 @@ function datetime(ms: number) {
 }
 
 export default function Tracker() {
+  const { data } = useWorkspace();
+  return <TrackerView key={data?.user.email ?? "signed-out"} />;
+}
+
+function TrackerView() {
   const path = usePathname();
-  const [data, setData] = useState<Snapshot | null>(null),
-    [loading, setLoading] = useState(true),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [register, setRegister] = useState(false),
-    [tick, setTick] = useState(0),
-    [offset, setOffset] = useState(0),
-    [retry, setRetry] = useState<Input | null>(null),
-    [editing, setEditing] = useState<Entry | null>(null),
-    [undo, setUndo] = useState<Entry | null>(null),
-    [zones, setZones] = useState<string[]>(["UTC"]);
-  const accept = useCallback((value: Snapshot) => {
-    setData(value);
-    setOffset(value.now - Date.now());
-  }, []);
-  const refreshing = useRef(false);
-  const lastRefreshAt = useRef(0);
-  const refresh = useCallback(async () => {
-    if (refreshing.current) return;
-    refreshing.current = true;
-    lastRefreshAt.current = Date.now();
-    try {
-      const response = await fetch("/api/work", { cache: "no-store" });
-      if (response.status === 401) {
-        setData(null);
-        return;
-      }
-      const value = await response.json();
-      if (!response.ok) throw new Error(value.error);
-      accept(value);
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Unable to load saved data. Check your connection and retry.",
-      );
-    } finally {
-      refreshing.current = false;
-      setLoading(false);
-    }
-  }, [accept]);
+  const {
+    data,
+    loading,
+    busy,
+    error,
+    retry,
+    offset,
+    totals,
+    refresh,
+    save,
+    authenticate,
+    setError,
+  } = useWorkspace();
+  const [register, setRegister] = useState(false);
+  const [editing, setEditing] = useState<Entry | null>(null);
+  const [undo, setUndo] = useState<Entry | null>(null);
+  const [zones, setZones] = useState<string[]>(["UTC"]);
+  const now = useWorkspaceDate(
+    data?.now ?? 0,
+    data?.user.timezone ?? "UTC",
+    offset,
+  );
+  const today = dayKey(now, data?.user.timezone ?? "UTC");
   useEffect(() => {
     const initial = setTimeout(() => {
-      // ICU timezone lists vary across runtimes; build suggestions after mount
-      // and deduplicate because some browsers already include UTC.
       const supported =
         typeof Intl.supportedValuesOf === "function"
           ? Intl.supportedValuesOf("timeZone")
           : [];
       setZones([...new Set(["UTC", ...supported])]);
-      void refresh();
     }, 0);
-    // Refresh on return to the app, never on an idle polling schedule.
-    // Focus and visibility often fire together; dedupe and limit these refreshes.
-    const onReturn = () => {
-      if (
-        document.visibilityState === "visible" &&
-        Date.now() - lastRefreshAt.current >= 60000
-      )
-        void refresh();
-    };
-    window.addEventListener("focus", onReturn);
-    document.addEventListener("visibilitychange", onReturn);
-    return () => {
-      clearTimeout(initial);
-      window.removeEventListener("focus", onReturn);
-      document.removeEventListener("visibilitychange", onReturn);
-    };
-  }, [refresh]);
-  useEffect(() => {
-    const timer = setInterval(() => setTick(Date.now()), 1000);
-    return () => clearInterval(timer);
+    return () => clearTimeout(initial);
   }, []);
-  async function save(input: Input) {
-    const payload = input.key ? input : { ...input, key: crypto.randomUUID() };
-    setBusy(true);
-    setError("");
-    setRetry(null);
-    try {
-      const response = await fetch("/api/work", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const value = await response.json();
-      if (!response.ok) {
-        if (response.status >= 500) setRetry(payload);
-        throw new Error(value.error);
-      }
-      accept(value.data);
-      return true;
-    } catch (e) {
-      if (e instanceof TypeError) setRetry(payload);
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Unable to save. Retry with the same request.",
-      );
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }
   async function auth(event: FormEvent<HTMLFormElement>) {
-    const input = form(event);
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...input,
-          action: register ? "register" : "login",
-        }),
-      });
-      const value = await response.json();
-      if (!response.ok) throw new Error(value.error);
-      await refresh();
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Unable to sign in. Check your connection.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    await authenticate({
+      ...form(event),
+      action: register ? "register" : "login",
+    });
   }
   const status = (
     <>
@@ -213,9 +156,8 @@ export default function Tracker() {
   );
   if (loading)
     return (
-      <main className="auth">
-        <h1>Orderly</h1>
-        <p role="status">Loading your workspace…</p>
+      <main className="auth workspace-loading">
+        <WorkspaceLoader />
         {status}
       </main>
     );
@@ -223,7 +165,10 @@ export default function Tracker() {
     return (
       <main className="auth">
         <Link className="wordmark" href="/">
-          Orderly<span> / time well recorded</span>
+          <Logo />
+          <div className="wordmark-copy">
+            Orderly<span> / time well recorded</span>
+          </div>
         </Link>
         <section>
           <p className="lede">A clear record of your working day.</p>
@@ -267,9 +212,10 @@ export default function Tracker() {
         <footer>Private workspace. No integrations connected.</footer>
       </main>
     );
-  const now = tick ? tick + offset : data.now,
-    active = data.entries.find((e) => e.end === null),
-    totals = dailyTotals(data.entries, data.user.timezone),
+  const activeTimers = data.entries.filter((e) => e.end === null),
+    timerLimit =
+      data.user.timer_limit === undefined ? 2 : data.user.timer_limit,
+    atCapacity = timerLimit !== null && activeTimers.length >= timerLimit,
     days = weekDays(now, data.user.timezone),
     week = days.reduce((sum, d) => sum + (totals[d] || 0), 0);
   const taskName = (id: string) =>
@@ -280,11 +226,18 @@ export default function Tracker() {
       data.projects.find((p) => p.id === task?.project_id)?.name || "Project"
     );
   };
-  const taskSelect = (selected?: string) => (
+  const taskSelect = (selected?: string, excludeRunning = false) => (
     <select name="taskId" defaultValue={selected} required>
       <option value="">Choose a task</option>
       {data.tasks.map((t) => (
-        <option key={t.id} value={t.id}>
+        <option
+          key={t.id}
+          value={t.id}
+          disabled={
+            excludeRunning &&
+            activeTimers.some((entry) => entry.task_id === t.id)
+          }
+        >
           {projectName(t.id)} / {t.name}
         </option>
       ))}
@@ -296,9 +249,13 @@ export default function Tracker() {
       ? "Task"
       : path.startsWith("/timesheet")
         ? "Timesheet"
-        : path.startsWith("/settings")
-          ? "Settings"
-          : "Today";
+        : path.startsWith("/billing")
+          ? "Billing"
+          : path === "/settings/connections"
+            ? "Connections"
+            : path.startsWith("/settings")
+              ? "Settings"
+              : "Today";
   const selectedTask = path.startsWith("/tasks/")
     ? data.tasks.find((t) => t.id === path.split("/")[2])
     : null;
@@ -377,17 +334,20 @@ export default function Tracker() {
         Skip to content
       </a>
       <aside className="rail">
-        <Link className="wordmark" href="/">
-          Orderly<span>Freelance time</span>
+        <Link className="wordmark" href="/" aria-label="Orderly home">
+          <Logo />
+          <div className="wordmark-copy">
+            Orderly<span>Freelance time</span>
+          </div>
         </Link>
         <BranchedMenu
           items={WORKSPACE_MENU}
-          defaultOpen={[0]}
+          defaultOpen={[0, 1]}
           activeValue={view === "Task" ? "/projects" : path}
           aria-label="Workspace"
-          color="var(--color-ink)"
-          accentColor="var(--color-focus)"
-          lineColor="var(--color-rule)"
+          color="var(--color-rail-ink)"
+          accentColor="var(--color-rail-muted)"
+          lineColor="var(--color-rail-rule)"
           width={240}
           rowHeight={44}
           indent={32}
@@ -399,24 +359,7 @@ export default function Tracker() {
           <p>{data.user.email}</p>
           <button
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                const response = await fetch("/api/auth", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "logout" }),
-                });
-                if (!response.ok) throw new Error("Unable to sign out.");
-                setData(null);
-              } catch (e) {
-                setError(
-                  e instanceof Error ? e.message : "Unable to sign out.",
-                );
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() => void authenticate({ action: "logout" })}
           >
             Sign out
           </button>
@@ -438,6 +381,7 @@ export default function Tracker() {
           <span className="timezone">{data.user.timezone}</span>
         </header>
         {status}
+        {view === "Billing" && <Billing work={data} refreshWork={refresh} />}
         {retry && (
           <p className="notice">
             A save needs retrying. Resolve it before starting another action.
@@ -466,76 +410,81 @@ export default function Tracker() {
         )}
         {(view === "Today" || view === "Task") && (
           <>
-            <section className="timer-panel">
-              <div>
-                <p>
-                  {active
-                    ? `Working on ${taskName(active.task_id)}`
-                    : "Ready when you are"}
-                </p>
-                <div className="clock mono" aria-label="Elapsed timer">
-                  {active ? duration(now - active.start) : "00:00:00"}
-                </div>
-                <p>
-                  {active
-                    ? projectName(active.task_id)
-                    : "Choose a task. Record only the work you do."}
-                </p>
-              </div>
-              {active ? (
-                <div>
+            <div className="active-timers" aria-label="Running timers">
+              {activeTimers.map((entry) => (
+                <section
+                  className="timer-panel"
+                  data-running="true"
+                  key={entry.id}
+                >
+                  <div>
+                    <p>Working on {taskName(entry.task_id)}</p>
+                    <div
+                      className="clock mono"
+                      aria-label={`Elapsed time for ${taskName(entry.task_id)}`}
+                    >
+                      <ElapsedTimer
+                        start={entry.start}
+                        serverNow={data.now}
+                        offset={offset}
+                      />
+                    </div>
+                    <p>{projectName(entry.task_id)}</p>
+                    <LongTimerNotice
+                      start={entry.start}
+                      serverNow={data.now}
+                      offset={offset}
+                    />
+                  </div>
                   <button
                     className="primary"
                     disabled={busy || !!retry}
                     onClick={() =>
-                      void save({ action: "stop", entryId: active.id })
+                      void save({ action: "stop", entryId: entry.id })
                     }
                   >
                     Stop timer
                   </button>
-                  <form
-                    className="switch-form"
-                    onSubmit={(e) => {
-                      const input = form(e);
-                      void save({
-                        ...input,
-                        action: "switch",
-                        entryId: active.id,
-                      });
-                    }}
-                  >
-                    <Field label="Switch to another task">{taskSelect()}</Field>
-                    <Submit busy={busy} disabled={!!retry}>
-                      Switch task
-                    </Submit>
-                  </form>
-                </div>
-              ) : (
-                <form
-                  onSubmit={(e) => {
-                    const input = form(e);
-                    void save({ ...input, action: "start" });
-                  }}
+                </section>
+              ))}
+            </div>
+            <section className="timer-panel">
+              <div>
+                <h2>
+                  {activeTimers.length
+                    ? "Start another task"
+                    : "Ready when you are"}
+                </h2>
+                <p>
+                  {activeTimers.length} running ·{" "}
+                  {timerLimit === null ? "No limit" : `Limit: ${timerLimit}`}
+                </p>
+                {atCapacity && (
+                  <p>
+                    Stop a timer or change the limit in{" "}
+                    <Link href="/settings">General settings</Link>.
+                  </p>
+                )}
+              </div>
+              <form
+                onSubmit={(e) => {
+                  const input = form(e);
+                  void save({ ...input, action: "start" });
+                }}
+              >
+                <Field label="Task">{taskSelect(selectedTask?.id, true)}</Field>
+                <Submit
+                  busy={busy}
+                  disabled={!!retry || atCapacity || !data.tasks.length}
                 >
-                  <Field label="Task">{taskSelect(selectedTask?.id)}</Field>
-                  <Submit busy={busy} disabled={!!retry}>
-                    Start timer
-                  </Submit>
-                </form>
-              )}
+                  Start timer
+                </Submit>
+              </form>
             </section>
-            {active && now - active.start > 12 * 3600000 && (
-              <p className="notice" role="status">
-                This timer has run for over 12 hours. Stop it and review the
-                interval; no idle time has been deducted.
-              </p>
-            )}
             <div className="totals">
               <div>
                 <span>Today · finalized</span>
-                <strong className="mono">
-                  {duration(totals[dayKey(now, data.user.timezone)] || 0)}
-                </strong>
+                <strong className="mono">{duration(totals[today] || 0)}</strong>
               </div>
               <div>
                 <span>This week · finalized</span>
@@ -562,9 +511,8 @@ export default function Tracker() {
                         taskId={selectedTask.id}
                         onStart={async (taskId) =>
                           save({
-                            action: active ? "switch" : "start",
+                            action: "start",
                             taskId,
-                            ...(active ? { entryId: active.id } : {}),
                           })
                         }
                       />
@@ -584,6 +532,7 @@ export default function Tracker() {
                           <span key={`${e.provider}-${index}`}>
                             {e.provider === "asana" ? "Asana" : "Notion"} ·{" "}
                             {e.status}
+                            {e.assignee ? ` · ${e.assignee}` : ""}
                             {e.archived || !e.available
                               ? " · archived / unavailable"
                               : ""}
@@ -597,22 +546,22 @@ export default function Tracker() {
                         disabled={
                           busy ||
                           !!retry ||
-                          active?.task_id === task.id ||
+                          atCapacity ||
+                          activeTimers.some(
+                            (entry) => entry.task_id === task.id,
+                          ) ||
                           task.external?.some((e) => e.ambiguous && !e.explicit)
                         }
                         onClick={() =>
                           void save({
-                            action: active ? "switch" : "start",
+                            action: "start",
                             taskId: task.id,
-                            ...(active ? { entryId: active.id } : {}),
                           })
                         }
                       >
-                        {active?.task_id === task.id
+                        {activeTimers.some((entry) => entry.task_id === task.id)
                           ? "Running"
-                          : active
-                            ? "Switch here"
-                            : "Start / resume"}
+                          : "Start / resume"}
                       </button>
                     </div>
                   ))}
@@ -737,13 +686,62 @@ export default function Tracker() {
                     {data.tasks
                       .filter((t) => t.project_id === project.id)
                       .map((t) => (
-                        <Link
-                          className="project-task"
-                          key={t.id}
-                          href={`/tasks/${t.id}`}
-                        >
-                          {t.name}
-                        </Link>
+                        <div className="project-task" key={t.id}>
+                          <Link href={`/tasks/${t.id}`}>{t.name}</Link>
+                          {t.external?.map((external, i) => (
+                            <span key={i}>
+                              {external.status}
+                              {external.assignee
+                                ? ` · ${external.assignee}`
+                                : ""}
+                              {!external.available ? " · unavailable" : ""}{" "}
+                              <a
+                                href={external.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Open in{" "}
+                                {external.provider === "notion"
+                                  ? "Notion"
+                                  : "Asana"}
+                              </a>
+                            </span>
+                          ))}
+                          {activeTimers.some(
+                            (entry) => entry.task_id === t.id,
+                          ) ? (
+                            <button
+                              disabled={busy || !!retry}
+                              onClick={() =>
+                                void save({
+                                  action: "stop",
+                                  entryId: activeTimers.find(
+                                    (entry) => entry.task_id === t.id,
+                                  )!.id,
+                                })
+                              }
+                            >
+                              Stop timer
+                            </button>
+                          ) : (
+                            <button
+                              disabled={
+                                busy ||
+                                !!retry ||
+                                atCapacity ||
+                                t.external?.some(
+                                  (external) =>
+                                    external.ambiguous && !external.explicit,
+                                )
+                              }
+                              onClick={() =>
+                                void save({ action: "start", taskId: t.id })
+                              }
+                            >
+                              Start timer
+                            </button>
+                          )}
+                        </div>
                       ))}
                   </div>
                   <form
@@ -870,6 +868,16 @@ export default function Tracker() {
                 </Submit>
               </form>
             </section>
+            <TimerPreferences
+              limit={timerLimit}
+              busy={busy || !!retry}
+              save={save}
+            />
+            <Operations />
+          </>
+        )}
+        {view === "Connections" && (
+          <>
             <Integrations data={data} refresh={refresh} />
             <GitHubEvidence
               data={data}
@@ -877,9 +885,8 @@ export default function Tracker() {
               settings
               onStart={async (taskId) =>
                 save({
-                  action: active ? "switch" : "start",
+                  action: "start",
                   taskId,
-                  ...(active ? { entryId: active.id } : {}),
                 })
               }
             />

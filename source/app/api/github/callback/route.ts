@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         "GitHub authorization was cancelled. Connect again from Settings.",
       );
     await finishGitHub(database(), state, code);
-    return Response.redirect(`${githubOrigin()}/settings`, 303);
+    return Response.redirect(`${githubOrigin()}/settings/connections`, 303);
   } catch (error) {
     return failure(error);
   }

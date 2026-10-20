@@ -19,11 +19,14 @@ export async function postgresFixture() {
         orderly_auth: ["command", "input"],
         orderly_snapshot: ["owner"],
         orderly_mutate: ["owner", "input", "at_ms"],
+        orderly_work: ["session_hash", "command", "input", "at_ms"],
         orderly_import: ["data"],
         orderly_integrations: ["owner", "command", "input"],
         orderly_sync: ["command", "input"],
         orderly_github: ["owner", "command", "input"],
         orderly_notion_setup: ["owner", "command", "input"],
+        orderly_billing: ["owner", "command", "input"],
+        orderly_operations: ["owner"],
         orderly_board_sync: ["command", "input"],
       };
       const names = signatures[name];

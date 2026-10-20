@@ -83,6 +83,7 @@ export async function finishAuthorization(
     provider: p,
     account: value.account,
     label: value.label,
+    identity: value.identity,
     credentials: encrypt(value.credentials),
   });
 }
@@ -190,7 +191,9 @@ export async function integrationAction(
       const mapping = input.mapping as Mapping;
       if (
         Object.entries(mapping).some(
-          ([field, value]) => field !== "sections" && typeof value !== "string",
+          ([field, value]) =>
+            !["sections", "automation", "doing"].includes(field) &&
+            typeof value !== "string",
         )
       )
         throw new Problem("Property IDs must be strings.");
@@ -206,6 +209,11 @@ export async function integrationAction(
           "Section status mappings must contain text labels up to 200 characters.",
         );
       validateMapping(c.provider, source, mapping);
+      if (c.provider === "notion" && mapping.automation && !c.identity?.user_id)
+        throw new Problem(
+          "Reconnect Notion to identify your account before enabling timers.",
+          409,
+        );
       return integrationRpc(db, owner, "map", {
         ...input,
         name: source.name,

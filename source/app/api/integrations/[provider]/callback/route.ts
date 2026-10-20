@@ -26,7 +26,10 @@ export async function GET(
         "Authorization was cancelled. Connect again from Settings.",
       );
     await finishAuthorization(database(), p, state, code);
-    return Response.redirect(`${process.env.ORDERLY_ORIGIN}/settings`, 303);
+    return Response.redirect(
+      `${process.env.ORDERLY_ORIGIN}/settings/connections`,
+      303,
+    );
   } catch (error) {
     return failure(error);
   }

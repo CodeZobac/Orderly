@@ -24,6 +24,8 @@ export async function GET() {
     );
     const ids = new Set(state.connections.map((c) => c.id));
     state.sources = state.sources.filter((s) => ids.has(s.connection_id));
+    state.notionWebhookConfigured =
+      !!process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN;
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });

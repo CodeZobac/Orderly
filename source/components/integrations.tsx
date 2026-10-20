@@ -98,19 +98,32 @@ export function Integrations({
     setWorkspaces(result.workspaces);
   }
   async function choose(c: Connection, id: string, prior?: Mapping) {
-    const option = await post({
+    const option: SourceOption = await post({
       action: "inspect",
       connectionId: c.id,
       externalId: id,
     });
     setSelected(c);
     setSource(option);
+    const unique = (types: string[]) => {
+      const fields = option.properties.filter((property) =>
+        types.includes(property.type),
+      );
+      return fields.length === 1 ? fields[0].id : "";
+    };
+    const existing = state?.sources.find(
+      (item) => item.connection_id === c.id && item.external_id === id,
+    );
     setMapping(
-      prior || {
-        title:
-          option.properties.find((p: { type: string }) => p.type === "title")
-            ?.id || "",
-      },
+      prior ||
+        existing?.mapping || {
+          title: unique(["title"]),
+          status: unique(["status", "select"]),
+          assignee: unique(["people"]),
+          due: unique(["date"]),
+          automation: false,
+          doing: [],
+        },
     );
   }
   async function saveMap(event: FormEvent<HTMLFormElement>) {
@@ -138,6 +151,7 @@ export function Integrations({
         mapping: selected.provider === "asana" ? { sections } : mapping,
       });
       await load();
+      await refresh();
       setSource(null);
     });
   }
@@ -174,8 +188,8 @@ export function Integrations({
         </button>
       </div>
       <p>
-        Import task context from Asana and Notion. Choose a billing project for
-        each source. Your timers, notes and rates stay in Orderly.
+        Choose the Notion boards to import as projects, or link a source to an
+        existing project. Manage task statuses in Notion and track time here.
       </p>
       {error && (
         <p role="alert" className="error">
@@ -195,6 +209,13 @@ export function Integrations({
         ))}
       </div>
       <NotionWebhookSetup />
+      {state && !state.notionWebhookConfigured && (
+        <p role="status">
+          Notion live updates need webhook setup on the server. With the sync
+          worker running, periodic synchronization still detects changes, but
+          timers may be delayed.
+        </p>
+      )}
       {!state && <p role="status">Loading connections…</p>}
       {state && !state.connections.length && (
         <p>
@@ -211,13 +232,35 @@ export function Integrations({
             Status: {c.status}
             {c.error ? ` · ${c.error}` : ""}
           </p>
+          {c.provider === "notion" && (
+            <>
+              <p>Workspace: {c.identity?.workspace_name || c.label}</p>
+              <p>
+                Connected person:{" "}
+                {c.identity?.user_name ||
+                  c.identity?.user_id ||
+                  "Reconnect to identify your Notion account"}
+              </p>
+              {!c.identity?.user_id && (
+                <p>
+                  Imports remain available. Reconnect to enable timers for tasks
+                  assigned to your account.
+                </p>
+              )}
+              <p>
+                Access includes only resources shared with this connection.
+                Choose boards below to see their fields and select what to
+                import.
+              </p>
+            </>
+          )}
           <div className="actions">
             {c.status === "connected" && (
               <button
                 disabled={busy}
                 onClick={() => void run(() => discover(c))}
               >
-                Choose sources
+                Browse accessible sources
               </button>
             )}
             <button disabled={busy} onClick={() => void connect(c.provider)}>
@@ -256,6 +299,14 @@ export function Integrations({
                     ? new Date(s.last_success).toISOString()
                     : "Not yet"}
                 </p>
+                {c.provider === "notion" && (
+                  <p>
+                    Automatic timers:{" "}
+                    {s.mapping.automation
+                      ? "Enabled · assigned to connected person only"
+                      : "Off"}
+                  </p>
+                )}
                 {s.error && <p role="status">{s.error}</p>}
                 <div className="actions">
                   <button
@@ -324,6 +375,13 @@ export function Integrations({
               }
             >
               {o.name}
+              {state?.sources.some(
+                (item) =>
+                  item.connection_id === selected.id &&
+                  item.external_id === o.id,
+              )
+                ? " · Selected for import"
+                : " · Not imported"}
             </button>
           ))}
           {cursor && (
@@ -351,21 +409,62 @@ export function Integrations({
           onSubmit={saveMap}
         >
           <h3>Map {source.name}</h3>
+          {selected.provider === "notion" && (
+            <div>
+              <h4>Accessible fields</h4>
+              <ul>
+                {source.properties.map((property) => (
+                  <li key={property.id}>
+                    {property.name} · {property.type}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p>
             Imported tasks keep their original billing attribution. Remapping
             applies to newly imported tasks.
           </p>
           <Field label="Orderly billing project">
-            {projectSelect(
-              "projectId",
-              state?.sources.find(
-                (s) =>
-                  s.connection_id === selected.id &&
-                  s.external_id === source.id,
-              )?.project_id,
+            {selected.provider === "notion" ? (
+              <select
+                name="projectId"
+                defaultValue={
+                  state?.sources.find(
+                    (item) =>
+                      item.connection_id === selected.id &&
+                      item.external_id === source.id,
+                  )?.project_id || ""
+                }
+              >
+                <option value="">
+                  Automatically create a project named {source.name}
+                </option>
+                {data.projects.map((project) => (
+                  <option value={project.id} key={project.id}>
+                    {project.name} · {project.currency}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              projectSelect(
+                "projectId",
+                state?.sources.find(
+                  (s) =>
+                    s.connection_id === selected.id &&
+                    s.external_id === source.id,
+                )?.project_id,
+              )
             )}
           </Field>
-          {!data.projects.length && (
+          {selected.provider === "notion" && (
+            <p>
+              New projects use EUR and a zero hourly rate. Set the project rate
+              before billing. Existing project rates and time history are
+              preserved.
+            </p>
+          )}
+          {selected.provider === "asana" && !data.projects.length && (
             <p>Create a billing project in Projects before importing.</p>
           )}
           {selected.provider === "notion" ? (
@@ -382,10 +481,18 @@ export function Integrations({
                   key={field}
                 >
                   <select
-                    required={field === "title"}
+                    required={
+                      field === "title" ||
+                      (!!mapping.automation &&
+                        (field === "status" || field === "assignee"))
+                    }
                     value={mapping[field] || ""}
                     onChange={(e) =>
-                      setMapping((old) => ({ ...old, [field]: e.target.value }))
+                      setMapping((old) => ({
+                        ...old,
+                        [field]: e.target.value,
+                        ...(field === "status" ? { doing: [] } : {}),
+                      }))
                     }
                   >
                     <option value="">
@@ -414,7 +521,58 @@ export function Integrations({
               />
             </Field>
           )}
-          <Submit busy={busy} disabled={!data.projects.length}>
+          {selected.provider === "notion" && (
+            <fieldset>
+              <legend>Notion timer automation</legend>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  disabled={!selected.identity?.user_id}
+                  checked={mapping.automation ?? false}
+                  onChange={(event) =>
+                    setMapping((old) => ({
+                      ...old,
+                      automation: event.target.checked,
+                    }))
+                  }
+                />{" "}
+                Start and stop timers when my assigned tasks enter or leave
+                Doing
+              </label>
+              <p>
+                Existing Doing tasks establish a baseline without starting
+                timers. Choose the status options that mean Doing:
+              </p>
+              {(
+                source.properties.find(
+                  (property) => property.id === mapping.status,
+                )?.options || []
+              ).map((option) => (
+                <label className="checkbox-label" key={option.id}>
+                  <input
+                    type="checkbox"
+                    checked={mapping.doing?.includes(option.id) ?? false}
+                    onChange={(event) =>
+                      setMapping((old) => ({
+                        ...old,
+                        doing: event.target.checked
+                          ? [...(old.doing || []), option.id]
+                          : (old.doing || []).filter((id) => id !== option.id),
+                      }))
+                    }
+                  />{" "}
+                  {option.name}
+                </label>
+              ))}
+              {!mapping.status && (
+                <p>Choose a status property to see its options.</p>
+              )}
+            </fieldset>
+          )}
+          <Submit
+            busy={busy}
+            disabled={selected.provider === "asana" && !data.projects.length}
+          >
             Save mapping & import
           </Submit>
           <button type="button" disabled={busy} onClick={() => setSource(null)}>

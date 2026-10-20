@@ -3,6 +3,14 @@ import { Problem } from "./problem";
 export interface Database {
   rpc<T>(name: string, args: Record<string, unknown>): Promise<T>;
 }
+export class MissingRpc extends Problem {
+  constructor(public readonly rpcName: string) {
+    super(
+      "Apply the pending Supabase migrations before using this operation.",
+      503,
+    );
+  }
+}
 export function openDatabase(
   url = process.env.SUPABASE_URL,
   secret = process.env.SUPABASE_SECRET_KEY,
@@ -39,6 +47,7 @@ export function openDatabase(
       });
       const { data, error } = await client.rpc(name, args);
       if (error) {
+        if (error.code === "PGRST202") throw new MissingRpc(name);
         if (error.code === "P0001" && /^ORDERLY:\d{3}:/.test(error.message)) {
           const [, status, ...message] = error.message.split(":");
           throw new Problem(message.join(":"), Number(status));

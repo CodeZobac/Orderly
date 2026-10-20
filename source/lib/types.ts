@@ -15,6 +15,7 @@ export type Task = {
     name: string;
     url: string;
     status: string;
+    assignee?: string | null;
     archived: boolean;
     ambiguous: boolean;
     explicit: boolean;
@@ -41,7 +42,7 @@ export type Audit = {
   at: number;
 };
 export type Snapshot = {
-  user: { email: string; timezone: string };
+  user: { email: string; timezone: string; timer_limit?: number | null };
   clients: Client[];
   projects: Project[];
   tasks: Task[];

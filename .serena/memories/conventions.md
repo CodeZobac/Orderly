@@ -2,6 +2,6 @@
 - Strict TS; shared types in lib/types; all mutations flow through owned transactional lib/domain. Do not accept workspace IDs or mutate entries without ownership/version/audit checks; consult `mem:foundation`.
 - Formatting via npm run format; ESLint Next/TS rules enforce hook purity. Client external refresh occurs via scheduled effect callback; clock reads happen in interval callback, not render.
 - Next16.4 cacheComponents/partialPrefetching: URL params reads wrapped in page-level Suspense, root streaming fallback; runtime segment override incompatible with cacheComponents. Node runtime is default.
-- Reuse amber tokens/import and contrast thresholds, no unverified integration states; consult `mem:design_system`. Global framework CSS remains preserved; new styles additive.
+- Reuse the current `design.md` chromatic tokens/import and contrast thresholds, no unverified integration states; consult `mem:design_system`. Global framework CSS remains preserved; new styles additive.
 - SQLite migration command reads process environment, unlike app Next .env.local loading; custom ORDERLY_DB_PATH must be supplied to CLI explicitly.
 - Next16.4 documented experimental.useTypeScriptCli=false uses installed TS5.9 compiler API while retaining typechecking. CLI subprocess --showConfig returned empty stdout on installed runtime despite valid direct output; API mode restored successful build. Revisit on runtime/TS upgrade (TS7 lacks compiler API).

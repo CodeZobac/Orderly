@@ -1,5 +1,10 @@
 export type Provider = "asana" | "notion";
-export type Property = { id: string; name: string; type: string };
+export type Property = {
+  id: string;
+  name: string;
+  type: string;
+  options?: { id: string; name: string }[];
+};
 export type SourceOption = {
   id: string;
   name: string;
@@ -12,6 +17,8 @@ export type Mapping = {
   assignee?: string;
   due?: string;
   sections?: Record<string, string>;
+  automation?: boolean;
+  doing?: string[];
 };
 export type ExternalMetadata = {
   id: string;
@@ -23,6 +30,9 @@ export type ExternalMetadata = {
   archived: boolean;
   ambiguous: boolean;
   section?: string | null;
+  status_id?: string;
+  assignee_ids?: string[];
+  updated_at?: string;
 };
 export type Connection = {
   id: string;
@@ -32,6 +42,12 @@ export type Connection = {
   status: string;
   error: string | null;
   generation: number;
+  identity?: {
+    user_id?: string;
+    user_name?: string;
+    workspace_id?: string;
+    workspace_name?: string;
+  };
 };
 export type Source = {
   id: string;
@@ -54,6 +70,7 @@ export type ExternalTask = {
   explicit_link: boolean;
 };
 export type Integrations = {
+  notionWebhookConfigured?: boolean;
   connections: Connection[];
   sources: Source[];
   tasks: ExternalTask[];

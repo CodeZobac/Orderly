@@ -1,11 +1,20 @@
 import type { Entry } from "./types";
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
 export function dayKey(instant: number, timezone: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(instant);
+  let formatter = dayFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    // Bound the cache on the server, where users can choose many timezones.
+    if (dayFormatters.size >= 64)
+      dayFormatters.delete(dayFormatters.keys().next().value!);
+    dayFormatters.set(timezone, formatter);
+  }
+  return formatter.format(instant);
 }
 // Binary search the next local date boundary: works across 23/25-hour DST days.
 export function nextDay(instant: number, timezone: string) {
@@ -21,12 +30,23 @@ export function nextDay(instant: number, timezone: string) {
 }
 export function dailyTotals(entries: Entry[], timezone: string) {
   const totals: Record<string, number> = {};
+  const boundaries = new Map<string, number>();
   for (const entry of entries) {
     if (entry.end === null) continue;
     let cursor = entry.start;
     while (cursor < entry.end) {
-      const end = Math.min(entry.end, nextDay(cursor, timezone));
       const day = dayKey(cursor, timezone);
+      // Most intervals finish on the same local date: no boundary search needed.
+      // Only split overnight intervals, sharing each date boundary across entries.
+      let end = entry.end;
+      if (dayKey(entry.end - 1, timezone) !== day) {
+        let boundary = boundaries.get(day);
+        if (boundary === undefined) {
+          boundary = nextDay(cursor, timezone);
+          boundaries.set(day, boundary);
+        }
+        end = Math.min(entry.end, boundary);
+      }
       totals[day] = (totals[day] || 0) + end - cursor;
       cursor = end;
     }

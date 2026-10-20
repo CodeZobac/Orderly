@@ -20,9 +20,10 @@ async function WorkspaceRoute({ params }: Props) {
   if (
     !(
       view.length === 1 &&
-      ["projects", "timesheet", "settings"].includes(view[0])
+      ["projects", "timesheet", "settings", "billing"].includes(view[0])
     ) &&
-    !(view.length === 2 && view[0] === "tasks")
+    !(view.length === 2 && view[0] === "tasks") &&
+    !(view.length === 2 && view[0] === "settings" && view[1] === "connections")
   )
     notFound();
   return <Tracker />;

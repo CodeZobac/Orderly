@@ -81,6 +81,7 @@ export function authorization(
     response_type: "code",
     state,
   }).toString();
+  if (provider === "notion") url.searchParams.set("owner", "user");
   if (provider === "asana") {
     url.searchParams.set(
       "scope",
@@ -200,6 +201,15 @@ export async function exchange(
   return {
     credentials,
     account,
+    identity:
+      provider === "notion"
+        ? {
+            user_id: string(object(object(result.owner).user).id),
+            user_name: string(object(object(result.owner).user).name),
+            workspace_id: string(result.workspace_id),
+            workspace_name: string(result.workspace_name),
+          }
+        : {},
     label:
       provider === "asana"
         ? string(object(result.data).name) || "Asana"
@@ -271,7 +281,15 @@ export async function discover(
 function properties(source: ObjectValue): Property[] {
   return Object.entries(object(source.properties)).map(([name, value]) => {
     const p = object(value);
-    return { id: string(p.id), name, type: string(p.type) };
+    return {
+      id: string(p.id),
+      name,
+      type: string(p.type),
+      options: list(object(p[string(p.type)]).options).map((option) => ({
+        id: string(option.id),
+        name: string(option.name),
+      })),
+    };
   });
 }
 export async function inspect(
@@ -306,6 +324,39 @@ export function validateMapping(
   mapping: Mapping,
 ) {
   if (provider === "asana") return;
+  if (
+    mapping.automation !== undefined &&
+    typeof mapping.automation !== "boolean"
+  )
+    throw new ProviderError(
+      "remap",
+      "Choose whether automatic timers are enabled.",
+    );
+  if (
+    mapping.doing !== undefined &&
+    (!Array.isArray(mapping.doing) ||
+      mapping.doing.some((id) => typeof id !== "string"))
+  )
+    throw new ProviderError("remap", "Choose valid Doing statuses.");
+  if (mapping.automation) {
+    if (!mapping.status || !mapping.assignee || !mapping.doing?.length)
+      throw new ProviderError(
+        "remap",
+        "Automatic timers require status, assignee, and Doing options.",
+      );
+    const status = source.properties.find(
+      (property) => property.id === mapping.status,
+    );
+    if (
+      mapping.doing.some(
+        (id) => !status?.options?.some((option) => option.id === id),
+      )
+    )
+      throw new ProviderError(
+        "remap",
+        "A Doing option changed. Confirm the current status options.",
+      );
+  }
   for (const [field, types] of Object.entries({
     title: ["title"],
     status: ["status", "select"],
@@ -370,11 +421,26 @@ export function normalizeNotion(
       "remap",
       "Task title is missing from this page. Restore property access or remap this source.",
     );
+  if (
+    mapping.automation &&
+    (!status.id ||
+      !get(mapping.assignee).id ||
+      !Array.isArray(get(mapping.assignee).people))
+  )
+    throw new ProviderError(
+      "remap",
+      "Task status or assignee access is missing. Restore access before automatic timing can continue.",
+    );
   return {
     id: string(value.id),
     name: rich(title.title) || "Untitled task",
     url: string(value.url),
     status: string(object(status[string(status.type)]).name) || "Open",
+    status_id: string(object(status[string(status.type)]).id),
+    updated_at: string(value.last_edited_time),
+    assignee_ids: list(get(mapping.assignee).people)
+      .map((person) => string(person.id))
+      .filter(Boolean),
     assignee:
       list(get(mapping.assignee).people)
         .map((x) => string(x.name) || string(x.id))
@@ -433,8 +499,56 @@ export async function importPage(
       "error",
       "Provider returned an incomplete task page. Sync will retry.",
     );
+  const pages = list(result.results);
+  // Notion truncates people values in page responses. Fetch every assignee
+  // before matching the OAuth owner so a truncated list cannot stop their timer.
+  for (const page of pages) {
+    const people = Object.values(object(page.properties))
+      .map(object)
+      .find((property) => property.id === mapping.assignee);
+    if (
+      !people ||
+      (list(people.people).length < 25 && people.has_more !== true)
+    )
+      continue;
+    const complete: ObjectValue[] = [];
+    let next: string | undefined;
+    const seen = new Set<string>();
+    do {
+      const params = new URLSearchParams({
+        page_size: "100",
+        ...(next ? { start_cursor: next } : {}),
+      });
+      const response = await api(
+        provider,
+        credentials,
+        `pages/${encodeURIComponent(string(page.id))}/properties/${encodeURIComponent(decodeURIComponent(string(people.id)))}?${params}`,
+      );
+      if (!Array.isArray(response.results))
+        throw new ProviderError(
+          "error",
+          "Notion returned an incomplete assignee list. Sync will retry.",
+        );
+      complete.push(
+        ...list(response.results).map((property) => object(property.people)),
+      );
+      next = response.has_more ? string(response.next_cursor) : undefined;
+      if (response.has_more && (!next || seen.has(next)))
+        throw new ProviderError(
+          "error",
+          "Notion assignee pagination did not finish. Sync will retry.",
+        );
+      if (next) seen.add(next);
+    } while (next);
+    people.people = complete;
+  }
   return {
-    tasks: list(result.results).map((x) => normalizeNotion(x, mapping)),
+    sourceName: source.name,
+    tasks: pages.map((x) => ({
+      ...normalizeNotion(x, mapping),
+      archived:
+        source.archived === true || x.in_trash === true || x.archived === true,
+    })),
     cursor: result.has_more ? string(result.next_cursor) : null,
   };
 }
