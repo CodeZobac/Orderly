@@ -1,6 +1,6 @@
 # Orderly implementation plan
 
-Status: Phase 1 complete. Phase 2 implemented locally, partial pending authorized acceptance checks and live setup; see [handoff](handoffs/phase-2.md). Phase 3 is implemented locally, partial pending authorized acceptance and live setup; see [handoff](handoffs/phase-3.md). Phase 4 remains planned.
+Status: Phase 1 complete. Phase 2 implemented locally, partial pending authorized acceptance checks and live setup; see [handoff](handoffs/phase-2.md). Phase 3 is implemented locally, partial pending authorized acceptance and live setup; see [handoff](handoffs/phase-3.md). Phase 4 is implemented locally, partial pending authorized acceptance and release verification; see [handoff](handoffs/phase-4.md).
 
 Phase 1 handoff: [implemented foundation and verification](handoffs/phase-1.md).
 
@@ -13,7 +13,7 @@ Build a freelance time-tracking app that connects work in Asana, Notion, and Git
 | 1 | [Foundation, Hallmark UI, and time tracking](phase-1.md) | **Complete** — persisted tracker; [handoff](handoffs/phase-1.md) |
 | 2 | [Asana and Notion](phase-2.md) | **Partial** — locally implemented; provider setup and acceptance pending; [handoff](handoffs/phase-2.md) |
 | 3 | [GitHub pull requests](phase-3.md) | **Partial** — GitHub App/evidence implemented locally; setup and acceptance pending; [handoff](handoffs/phase-3.md) |
-| 4 | [Billing, reporting, and release readiness](phase-4.md) | Reviewed, reproducible billing reports with evidence and exports |
+| 4 | [Billing, reporting, and release readiness](phase-4.md) | **Partial** — billing review/finalized snapshots/exports implemented locally; acceptance and release pending; [handoff](handoffs/phase-4.md) |
 
 ## Confirmed requirements
 
@@ -65,4 +65,4 @@ Update the phase's status in this index, Serena `implementation_plan`, relevant 
 
 ## Current baseline
 
-The application in `source/` implements the Phase 1 tracker with independent account/session authentication and Hallmark amber tokens. The subsequent Supabase follow-up replaces runtime SQLite with private Postgres RPCs and GitHub-managed migrations; live activation remains pending external setup. See both handoffs and `source/README.md` for current contracts and checks. The Supabase GitHub deployment integration is infrastructure, separate from Phase 3's pull-request evidence feature. Asana/Notion integrations and the separate durable sync worker are locally implemented; their acceptance and live activation remain pending. GitHub App and PR evidence are locally implemented, with acceptance/live setup pending; see [Phase 3 handoff](handoffs/phase-3.md). Billing/export remains Phase 4. Read `source/AGENTS.md` and installed Next.js documentation before coding.
+The application in `source/` implements the Phase 1 tracker with independent account/session authentication and Hallmark amber tokens. The subsequent Supabase follow-up replaces runtime SQLite with private Postgres RPCs and GitHub-managed migrations; live activation remains pending external setup. See both handoffs and `source/README.md` for current contracts and checks. The Supabase GitHub deployment integration is infrastructure, separate from Phase 3's pull-request evidence feature. Asana/Notion integrations and the separate durable sync worker are locally implemented; their acceptance and live activation remain pending. GitHub App and PR evidence are locally implemented, with acceptance/live setup pending; see [Phase 3 handoff](handoffs/phase-3.md). Phase 4 billing/export and operational runbook are locally implemented; acceptance, recovery rehearsal and release clearance remain pending. Read `source/AGENTS.md` and installed Next.js documentation before coding.

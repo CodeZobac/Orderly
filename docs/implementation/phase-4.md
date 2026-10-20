@@ -1,6 +1,6 @@
 # Phase 4 — Billing, reporting, and release readiness
 
-Status: planned. Execute in its own chat session after Phase 3.
+Status: implemented locally, partial pending authorized acceptance and release verification. See [handoff](handoffs/phase-4.md) and [release runbook](release-runbook.md).
 
 ## Start here
 

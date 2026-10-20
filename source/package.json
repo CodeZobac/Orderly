@@ -17,33 +17,45 @@
     "test:github": "node --import tsx --test tests/github.test.ts",
     "test:notion-setup": "node --import tsx --test tests/notion-webhook-setup.test.ts",
     "db:check": "node --import tsx scripts/check-db.ts",
-    "db:import": "node --import tsx scripts/import-sqlite.ts"
+    "db:import": "node --import tsx scripts/import-sqlite.ts",
+    "test:billing": "node --import tsx --test tests/billing.test.ts",
+    "config:validate": "node --import tsx scripts/validate-config.ts",
+    "logo:studio": "remotion studio remotion/root.tsx",
+    "logo:export": "node --import tsx scripts/export-logo.mts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@hugeicons/core-free-icons": "^4.3.5",
     "@hugeicons/react": "^1.1.10",
+    "@react-three/fiber": "9.8.1",
+    "@remotion/player": "4.0.534",
+    "@remotion/three": "4.0.534",
     "@supabase/supabase-js": "2.117.3",
     "next": "16.4.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "remotion": "4.0.534",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
     "@playwright/test": "^1.64.0",
+    "@remotion/cli": "4.0.534",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "0.186.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "prettier": "^3.9.9",
     "supabase": "2.120.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "zod": "4.5.4"
   },
   "engines": {
     "node": ">=24.0.0"
