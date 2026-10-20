@@ -11,6 +11,7 @@ import type {
   SourceOption,
 } from "@/lib/integration-types";
 import { Field } from "./fields";
+import { Select } from "./select";
 
 const FIELDS = [
   { key: "title", label: "Task name", types: ["title"] },
@@ -386,25 +387,29 @@ export function NotionSourceDialog({
                 </p>
               ) : (
                 <Field label="Project">
-                  <select
+                  <Select
                     value={projectId}
-                    onChange={(event) => setProjectId(event.target.value)}
-                  >
-                    <option value="">Choose a project</option>
-                    {existing &&
+                    onChange={setProjectId}
+                    placeholder="Choose a project"
+                    options={[
+                      ...(existing &&
                       !projects.some(
                         (project) => project.id === existing.project_id,
-                      ) && (
-                        <option value={existing.project_id}>
-                          Current linked project
-                        </option>
-                      )}
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name} · {project.currency}
-                      </option>
-                    ))}
-                  </select>
+                      )
+                        ? [
+                            {
+                              value: existing.project_id,
+                              label: "Current linked project",
+                            },
+                          ]
+                        : []),
+                      ...projects.map((project) => ({
+                        value: project.id,
+                        label: project.name,
+                        hint: project.currency,
+                      })),
+                    ]}
+                  />
                 </Field>
               )}
               {existing && (
@@ -449,33 +454,31 @@ export function NotionSourceDialog({
                       key={field.key}
                       label={`${field.label}${field.key === "title" ? "" : " (optional)"}`}
                     >
-                      <select
+                      <Select
                         value={mapping[field.key] || ""}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           setMapping((old) => ({
                             ...old,
-                            [field.key]: event.target.value,
+                            [field.key]: value,
                             ...(field.key === "status" ? { doing: [] } : {}),
                           }))
                         }
-                      >
-                        <option value="">
-                          {field.key === "title"
+                        emptyOption={
+                          field.key === "title"
                             ? "Choose a field"
-                            : "Not mapped"}
-                        </option>
-                        {source.properties
+                            : "Not mapped"
+                        }
+                        options={source.properties
                           .filter((property) =>
                             (field.types as readonly string[]).includes(
                               property.type,
                             ),
                           )
-                          .map((property) => (
-                            <option value={property.id} key={property.id}>
-                              {property.name}
-                            </option>
-                          ))}
-                      </select>
+                          .map((property) => ({
+                            value: property.id,
+                            label: property.name,
+                          }))}
+                      />
                     </Field>
                   ))}
                 </div>

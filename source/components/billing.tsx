@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/billing-format";
 import { dayKey, nextDay } from "@/lib/time";
 import { Field } from "./fields";
+import { Select } from "./select";
 
 type Input = Record<string, unknown>;
 export function Billing({
@@ -48,6 +50,35 @@ export function Billing({
     clientId: "",
     projectId: "",
   });
+  // Deep links from search (?clientId, ?projectId, ?from, ?task) seed the filters
+  // and open a preview. A link never saves anything.
+  const params = useSearchParams();
+  const linkKey = params.toString();
+  const focusTask = params.get("task") || "";
+  const requestRef = useRef<(input: Input) => Promise<void>>(async () => {});
+  useEffect(() => {
+    const link = new URLSearchParams(linkKey);
+    if (!["clientId", "projectId", "from"].some((key) => link.has(key))) return;
+    const monthStart = today.slice(0, 8) + "01";
+    const from = link.get("from");
+    const next: BillingFilters = {
+      from:
+        from && /^\d{4}-\d{2}-\d{2}$/.test(from) && from < monthStart
+          ? from
+          : monthStart,
+      to: dayKey(nextDay(work.now, work.user.timezone), work.user.timezone),
+      timezone: work.user.timezone,
+      clientId: link.get("clientId") || "",
+      projectId: link.get("projectId") || "",
+    };
+    const timer = setTimeout(() => {
+      setFilters(next);
+      void requestRef.current({ command: "preview", filters: next });
+    }, 0);
+    return () => clearTimeout(timer);
+    // Only a new link should re-seed; later clock ticks must not reset edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkKey]);
   const loadIndex = useCallback(async () => {
     const response = await fetch("/api/billing", { cache: "no-store" });
     const value = await response.json();
@@ -135,7 +166,16 @@ export function Billing({
       setBusy(false);
     }
   }
+  useEffect(() => {
+    requestRef.current = request;
+  });
   const review = report?.snapshot ?? preview;
+  useEffect(() => {
+    if (!focusTask || !review) return;
+    document
+      .querySelector(`[data-task-line="${CSS.escape(focusTask)}"]`)
+      ?.scrollIntoView({ block: "center" });
+  }, [focusTask, review]);
   const disabled = busy || !!retry;
   const change = (key: keyof BillingFilters, value: string) =>
     setFilters((f) => ({
@@ -201,35 +241,32 @@ export function Billing({
               />
             </Field>
             <Field label="Client">
-              <select
+              <Select
                 value={filters.clientId}
-                onChange={(e) => change("clientId", e.target.value)}
-              >
-                <option value="">All clients</option>
-                {work.clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => change("clientId", value)}
+                emptyOption="All clients"
+                options={work.clients.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                }))}
+              />
             </Field>
             <Field label="Project">
-              <select
+              <Select
                 value={filters.projectId}
-                onChange={(e) => change("projectId", e.target.value)}
-              >
-                <option value="">All projects</option>
-                {work.projects
+                onChange={(value) => change("projectId", value)}
+                emptyOption="All projects"
+                options={work.projects
                   .filter(
                     (p) =>
                       !filters.clientId || p.client_id === filters.clientId,
                   )
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
+                  .map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                    hint: p.currency,
+                  }))}
+              />
             </Field>
           </div>
           <div className="actions">
@@ -360,7 +397,11 @@ export function Billing({
           <h3>Task subtotals</h3>
           <div className="billing-subtotals">
             {taskSubtotals(review).map((t) => (
-              <article key={`${t.taskId}:${t.currency}`}>
+              <article
+                key={`${t.taskId}:${t.currency}`}
+                data-task-line={t.taskId}
+                data-highlight={t.taskId === focusTask || undefined}
+              >
                 <strong>
                   {t.client} / {t.project} / {t.task}
                 </strong>
@@ -378,6 +419,7 @@ export function Billing({
               <article
                 className="billing-line"
                 key={`${line.entryId}:${line.start}`}
+                data-highlight={line.taskId === focusTask || undefined}
               >
                 <h4>
                   <Link href={`/tasks/${line.taskId}`}>{line.task}</Link>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { Snapshot } from "@/lib/types";
 import { Field, Submit } from "./fields";
+import { Select } from "./select";
 
 type Input = Record<string, unknown>;
 
@@ -235,16 +236,15 @@ export function ProjectsWorkbench({
         <CreationAccordion title="Create a project">
           <form onSubmit={(event) => void create(event, "project")}>
             <Field label="Client">
-              <select name="clientId" required defaultValue="">
-                <option value="" disabled>
-                  Choose a client
-                </option>
-                {data.clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="clientId"
+                required
+                placeholder="Choose a client"
+                options={data.clients.map((client) => ({
+                  value: client.id,
+                  label: client.name,
+                }))}
+              />
             </Field>
             <Field label="Project name">
               <input name="name" required maxLength={200} />
@@ -282,16 +282,17 @@ export function ProjectsWorkbench({
         <CreationAccordion title="Create a task">
           <form onSubmit={(event) => void create(event, "task")}>
             <Field label="Project">
-              <select name="projectId" required defaultValue="">
-                <option value="" disabled>
-                  Choose a project
-                </option>
-                {data.projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="projectId"
+                required
+                placeholder="Choose a project"
+                options={data.projects.map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                  group: data.clients.find((c) => c.id === project.client_id)
+                    ?.name,
+                }))}
+              />
             </Field>
             <Field label="Task name">
               <input name="name" required maxLength={200} />

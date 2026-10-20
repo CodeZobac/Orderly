@@ -1,13 +1,17 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWorkspace } from "./workspace-provider";
 import {
   ElapsedTimer,
   LongTimerNotice,
+  RunningAmount,
+  formatMinor,
   useWorkspaceDate,
 } from "./workspace-clock";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { StopIcon } from "@hugeicons/core-free-icons";
 import type { FormEvent } from "react";
 import type { Entry } from "@/lib/types";
 import { dayKey, duration, weekDays } from "@/lib/time";
@@ -71,6 +75,10 @@ import { Logo } from "./logo";
 import { WorkspaceLoader } from "./workspace-loader";
 import { TimerPreferences } from "./timer-preferences";
 import { ProjectsWorkbench } from "./projects-workbench";
+import { Select, type SelectOption } from "./select";
+import { CommandPalette, billingHref } from "./command-palette";
+
+const PROJECT_KEY = "orderly:timer-project";
 
 type Input = Record<string, unknown>;
 function form(event: FormEvent<HTMLFormElement>) {
@@ -108,6 +116,39 @@ function TrackerView() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [undo, setUndo] = useState<Entry | null>(null);
   const [zones, setZones] = useState<string[]>(["UTC"]);
+  const router = useRouter();
+  // The selected project scopes the timer's task dropdown; remembered per browser.
+  const [timerProject, setTimerProject] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem(PROJECT_KEY) || "",
+  );
+  const [startTask, setStartTask] = useState("");
+  const startPanel = useRef<HTMLElement>(null);
+  const chooseProject = useCallback((projectId: string) => {
+    setTimerProject(projectId);
+    setStartTask("");
+    window.localStorage.setItem(PROJECT_KEY, projectId);
+  }, []);
+  const focusStart = useCallback(() => {
+    // Wait for the scoped dropdown to render, then hand focus to it.
+    requestAnimationFrame(() => {
+      startPanel.current?.scrollIntoView({ block: "nearest" });
+      // Touch devices only scroll: focusing would open the keyboard unasked.
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+      startPanel.current
+        ?.querySelector<HTMLInputElement>('[role="combobox"]')
+        ?.focus({ preventScroll: true });
+    });
+  }, []);
+  const trackProject = useCallback(
+    (projectId: string) => {
+      chooseProject(projectId);
+      if (path !== "/") router.push("/");
+      focusStart();
+    },
+    [chooseProject, focusStart, path, router],
+  );
   const now = useWorkspaceDate(
     data?.now ?? 0,
     data?.user.timezone ?? "UTC",
@@ -227,27 +268,54 @@ function TrackerView() {
       data.projects.find((p) => p.id === task?.project_id)?.name || "Project"
     );
   };
-  const taskSelect = (selected?: string, excludeRunning = false) => (
-    <select name="taskId" defaultValue={selected} required>
-      <option value="">Choose a task</option>
-      {data.tasks
-        .filter(
-          (task) =>
-            !task.review_blocked || (!excludeRunning && task.id === selected),
-        )
-        .map((t) => (
-          <option
-            key={t.id}
-            value={t.id}
-            disabled={
-              excludeRunning &&
-              activeTimers.some((entry) => entry.task_id === t.id)
-            }
-          >
-            {projectName(t.id)} / {t.name}
-          </option>
-        ))}
-    </select>
+  const clientOf = (taskId: string) => {
+    const task = data.tasks.find((t) => t.id === taskId);
+    const project = data.projects.find((p) => p.id === task?.project_id);
+    return data.clients.find((c) => c.id === project?.client_id)?.name || "";
+  };
+  const taskOptions = (
+    projectId?: string,
+    selected?: string,
+    excludeRunning = false,
+  ): SelectOption[] =>
+    data.tasks
+      .filter(
+        (task) =>
+          (!projectId || task.project_id === projectId) &&
+          (!task.review_blocked || (!excludeRunning && task.id === selected)),
+      )
+      .map((t) => {
+        const running =
+          excludeRunning &&
+          activeTimers.some((entry) => entry.task_id === t.id);
+        const ambiguous =
+          excludeRunning &&
+          !!t.external?.some((e) => e.ambiguous && !e.explicit);
+        const source = t.external?.[0];
+        return {
+          value: t.id,
+          label: t.name,
+          group: projectId ? undefined : projectName(t.id),
+          hint: running
+            ? "Running"
+            : ambiguous
+              ? "Billing assignment required"
+              : source
+                ? `${source.provider === "asana" ? "Asana" : "Notion"} · ${source.status}${source.assignee ? ` · ${source.assignee}` : ""}`
+                : undefined,
+          keywords: source ? `${source.status} ${source.assignee ?? ""}` : "",
+          disabled: running || ambiguous,
+        };
+      });
+  const taskSelect = (selected?: string) => (
+    <Select
+      name="taskId"
+      defaultValue={selected || ""}
+      required
+      placeholder="Choose a task"
+      options={taskOptions(undefined, selected)}
+      emptyMessage="No tasks match"
+    />
   );
   const view = path.startsWith("/projects")
     ? "Projects"
@@ -265,6 +333,24 @@ function TrackerView() {
   const selectedTask = path.startsWith("/tasks/")
     ? data.tasks.find((t) => t.id === path.split("/")[2])
     : null;
+  // Task detail pins the scope to that task's project; otherwise use the remembered
+  // choice, falling back to a project with a running timer, then the first project.
+  const runningProjectIds = new Set(
+    activeTimers.map(
+      (entry) => data.tasks.find((t) => t.id === entry.task_id)?.project_id,
+    ),
+  );
+  const scopeProject =
+    data.projects.find(
+      (p) => p.id === (selectedTask?.project_id ?? timerProject),
+    ) ??
+    data.projects.find((p) => runningProjectIds.has(p.id)) ??
+    data.projects[0];
+  const scopedStart =
+    startTask ||
+    (selectedTask && selectedTask.project_id === scopeProject?.id
+      ? selectedTask.id
+      : "");
   function entries(list: Entry[]) {
     return list.length ? (
       <div className="entry-list">
@@ -341,6 +427,13 @@ function TrackerView() {
             Orderly<span>Freelance time</span>
           </div>
         </Link>
+        <CommandPalette
+          data={data}
+          busy={busy}
+          blocked={!!retry}
+          save={save}
+          onTrackProject={trackProject}
+        />
         <BranchedMenu
           items={WORKSPACE_MENU}
           defaultOpen={[0, 1]}
@@ -418,8 +511,10 @@ function TrackerView() {
                   data-running="true"
                   key={entry.id}
                 >
-                  <div>
-                    <p>Working on {taskName(entry.task_id)}</p>
+                  <div className="running-main">
+                    <p className="running-task">
+                      Working on <strong>{taskName(entry.task_id)}</strong>
+                    </p>
                     <div
                       className="clock mono"
                       aria-label={`Elapsed time for ${taskName(entry.task_id)}`}
@@ -430,30 +525,85 @@ function TrackerView() {
                         offset={offset}
                       />
                     </div>
-                    <p>{projectName(entry.task_id)}</p>
+                    <p className="running-project">
+                      {projectName(entry.task_id)}
+                      {clientOf(entry.task_id) && (
+                        <span> · {clientOf(entry.task_id)}</span>
+                      )}
+                    </p>
                     <LongTimerNotice
                       start={entry.start}
                       serverNow={data.now}
                       offset={offset}
                     />
                   </div>
-                  <button
-                    className="primary"
-                    disabled={busy || !!retry}
-                    onClick={() =>
-                      void save({ action: "stop", entryId: entry.id })
-                    }
-                  >
-                    Stop timer
-                  </button>
+                  <div className="running-side">
+                    <button
+                      className="primary stop-timer"
+                      disabled={busy || !!retry}
+                      onClick={() =>
+                        void save({ action: "stop", entryId: entry.id })
+                      }
+                    >
+                      <HugeiconsIcon
+                        icon={StopIcon}
+                        size={16}
+                        strokeWidth={2.2}
+                      />
+                      Stop timer
+                    </button>
+                    <div className="running-earned">
+                      {!entry.billable ? (
+                        <>
+                          <span>Earned so far</span>
+                          <strong className="mono">Non-billable</strong>
+                          <small>Not included in billing</small>
+                        </>
+                      ) : entry.rate <= 0 ? (
+                        <>
+                          <span>Earned so far</span>
+                          <strong className="mono">
+                            {formatMinor(entry.currency, 0)}
+                          </strong>
+                          <small>
+                            No rate set ·{" "}
+                            <Link href="/projects">Set a rate</Link>
+                          </small>
+                        </>
+                      ) : (
+                        <>
+                          <span>Earned so far</span>
+                          <strong
+                            className="mono"
+                            aria-label={`Earned so far for ${taskName(entry.task_id)}`}
+                          >
+                            <RunningAmount
+                              start={entry.start}
+                              serverNow={data.now}
+                              offset={offset}
+                              rate={entry.rate}
+                              currency={entry.currency}
+                            />
+                          </strong>
+                          <small className="mono">
+                            {formatMinor(entry.currency, entry.rate)}/h
+                          </small>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </section>
               ))}
             </div>
-            <section className="timer-panel">
+            <section
+              className="timer-panel start-panel"
+              ref={startPanel}
+              aria-labelledby="start-timer-title"
+            >
               <div>
-                <h2>
+                <h2 id="start-timer-title">
                   {activeTimers.length
-                    ? "Start another task"
+                    ? "Start another timer"
                     : "Ready when you are"}
                 </h2>
                 <p>
@@ -467,24 +617,53 @@ function TrackerView() {
                   </p>
                 )}
               </div>
-              <form
-                onSubmit={(e) => {
-                  const input = form(e);
-                  void save({ ...input, action: "start" });
-                }}
-              >
-                <Field label="Task">{taskSelect(selectedTask?.id, true)}</Field>
-                <Submit
-                  busy={busy}
-                  disabled={
-                    !!retry ||
-                    atCapacity ||
-                    !data.tasks.some((task) => !task.review_blocked)
-                  }
+              {scopeProject ? (
+                <form
+                  onSubmit={async (e) => {
+                    const input = form(e);
+                    if (await save({ ...input, action: "start" }))
+                      setStartTask("");
+                  }}
                 >
-                  Start timer
-                </Submit>
-              </form>
+                  <p className="start-scope">
+                    <span>Project</span>
+                    <strong>{scopeProject.name}</strong>
+                    <span>
+                      {data.clients.find((c) => c.id === scopeProject.client_id)
+                        ?.name || "Client"}
+                    </span>
+                  </p>
+                  <Field label={`Task in ${scopeProject.name}`}>
+                    <Select
+                      key={scopeProject.id}
+                      name="taskId"
+                      value={scopedStart}
+                      onChange={setStartTask}
+                      required
+                      placeholder="Choose a task"
+                      emptyMessage="No tasks in this project match"
+                      options={taskOptions(scopeProject.id, undefined, true)}
+                    />
+                  </Field>
+                  <Submit
+                    busy={busy}
+                    disabled={
+                      !!retry ||
+                      atCapacity ||
+                      !taskOptions(scopeProject.id, undefined, true).some(
+                        (o) => !o.disabled,
+                      )
+                    }
+                  >
+                    Start timer
+                  </Submit>
+                </form>
+              ) : (
+                <p className="empty">
+                  <Link href="/projects">Create a project</Link> to start
+                  tracking.
+                </p>
+              )}
             </section>
             <div className="totals">
               <div>
@@ -498,7 +677,7 @@ function TrackerView() {
             </div>
             <section>
               <div className="section-head">
-                <h2>{view === "Task" ? "Task history" : "Your tasks"}</h2>
+                <h2>{view === "Task" ? "Task history" : "Your projects"}</h2>
                 <Link href="/projects">Manage projects</Link>
               </div>
               {view === "Task" ? (
@@ -526,57 +705,75 @@ function TrackerView() {
                     <p>This task does not exist in your workspace.</p>
                   )}
                 </>
-              ) : data.tasks.some((task) => !task.review_blocked) ? (
-                <div className="task-list">
-                  {data.tasks
-                    .filter((task) => !task.review_blocked)
-                    .map((task) => (
-                      <div key={task.id}>
-                        <Link href={`/tasks/${task.id}`}>
-                          <strong>{task.name}</strong>
-                          <span>{projectName(task.id)}</span>
-                          {task.external?.map((e, index) => (
-                            <span key={`${e.provider}-${index}`}>
-                              {e.provider === "asana" ? "Asana" : "Notion"} ·{" "}
-                              {e.status}
-                              {e.assignee ? ` · ${e.assignee}` : ""}
-                              {e.archived || !e.available
-                                ? " · archived / unavailable"
-                                : ""}
-                              {e.ambiguous && !e.explicit
-                                ? " · billing assignment required in Settings"
-                                : ""}
-                            </span>
-                          ))}
-                        </Link>
+              ) : data.projects.length ? (
+                <ul className="project-picker" aria-label="Choose a project">
+                  {data.projects.map((project) => {
+                    const tasks = data.tasks.filter(
+                      (t) => t.project_id === project.id && !t.review_blocked,
+                    );
+                    const running = activeTimers.filter((entry) =>
+                      tasks.some((t) => t.id === entry.task_id),
+                    );
+                    const selected = project.id === scopeProject?.id;
+                    return (
+                      <li
+                        key={project.id}
+                        data-selected={selected || undefined}
+                      >
                         <button
-                          disabled={
-                            busy ||
-                            !!retry ||
-                            atCapacity ||
-                            activeTimers.some(
-                              (entry) => entry.task_id === task.id,
-                            ) ||
-                            task.external?.some(
-                              (e) => e.ambiguous && !e.explicit,
-                            )
-                          }
-                          onClick={() =>
-                            void save({
-                              action: "start",
-                              taskId: task.id,
-                            })
-                          }
+                          type="button"
+                          className="project-pick"
+                          aria-pressed={selected}
+                          onClick={() => {
+                            chooseProject(project.id);
+                            focusStart();
+                          }}
                         >
-                          {activeTimers.some(
-                            (entry) => entry.task_id === task.id,
-                          )
-                            ? "Running"
-                            : "Start / resume"}
+                          <span className="project-pick-name">
+                            <strong>{project.name}</strong>
+                            <span>
+                              {data.clients.find(
+                                (c) => c.id === project.client_id,
+                              )?.name || "Client"}{" "}
+                              · {tasks.length}{" "}
+                              {tasks.length === 1 ? "task" : "tasks"} ·{" "}
+                              <span className="mono">
+                                {project.currency}{" "}
+                                {(project.rate / 100).toFixed(2)}/h
+                              </span>
+                            </span>
+                            {running.length > 0 && (
+                              <span className="project-pick-running">
+                                {running
+                                  .map((entry) => taskName(entry.task_id))
+                                  .join(" · ")}
+                              </span>
+                            )}
+                          </span>
+                          <span className="project-pick-state">
+                            {running.length > 0 && (
+                              <span className="badge running">
+                                {running.length} running
+                              </span>
+                            )}
+                            {selected && (
+                              <span className="badge selected">Selected</span>
+                            )}
+                          </span>
                         </button>
-                      </div>
-                    ))}
-                </div>
+                        <Link
+                          className="project-pick-billing"
+                          href={billingHref({
+                            clientId: project.client_id,
+                            projectId: project.id,
+                          })}
+                        >
+                          Billable items
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <p className="empty">
                   Your workspace is ready.{" "}

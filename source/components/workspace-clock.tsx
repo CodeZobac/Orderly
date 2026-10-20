@@ -49,3 +49,25 @@ export function LongTimerNotice({ start, serverNow, offset }: ClockProps) {
     </p>
   ) : null;
 }
+
+/** Earnings so far in integer minor units, rounded half up like billing. */
+export function earnedMinor(elapsedMs: number, rateMinorPerHour: number) {
+  if (elapsedMs <= 0 || rateMinorPerHour <= 0) return 0;
+  const numerator = BigInt(Math.floor(elapsedMs)) * BigInt(rateMinorPerHour);
+  return Number((numerator * BigInt(2) + BigInt(3600000)) / BigInt(7200000));
+}
+export function formatMinor(currency: string, minor: number) {
+  return `${currency} ${(minor / 100).toFixed(2)}`;
+}
+type AmountProps = ClockProps & { rate: number; currency: string };
+/** Live estimate for a running timer; the billing preview stays authoritative. */
+export function RunningAmount({
+  start,
+  serverNow,
+  offset,
+  rate,
+  currency,
+}: AmountProps) {
+  const now = useClock(serverNow, offset);
+  return formatMinor(currency, earnedMinor(now - start, rate));
+}

@@ -10,6 +10,7 @@ import type {
 } from "@/lib/github-types";
 import { duration } from "@/lib/time";
 import { Field, Submit } from "./fields";
+import { Select } from "./select";
 
 async function post(input: Record<string, unknown>, path = "/api/github") {
   const response = await fetch(path, {
@@ -112,28 +113,17 @@ export function GitHubEvidence({
     data.entries
       .filter((e) => e.task_id === id && e.end !== null)
       .reduce((sum, e) => sum + e.end! - e.start, 0);
-  const taskOptions = (
-    <>
-      <option value="">Choose a canonical task</option>
-      {data.tasks
-        .filter((task) => !task.review_blocked)
-        .map((t) => (
-          <option key={t.id} value={t.id}>
-            {data.projects.find((p) => p.id === t.project_id)?.name} / {t.name}
-          </option>
-        ))}
-    </>
-  );
-  const projectOptions = (
-    <>
-      <option value="">Choose a billing project</option>
-      {data.projects.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
-        </option>
-      ))}
-    </>
-  );
+  const taskOptions = data.tasks
+    .filter((task) => !task.review_blocked)
+    .map((t) => ({
+      value: t.id,
+      label: t.name,
+      group: data.projects.find((p) => p.id === t.project_id)?.name,
+    }));
+  const projectOptions = data.projects.map((p) => ({
+    value: p.id,
+    label: p.name,
+  }));
   const formData = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     return Object.fromEntries(new FormData(event.currentTarget));
@@ -248,9 +238,13 @@ export function GitHubEvidence({
           }}
         >
           <Field label="Link another task">
-            <select name="taskId" required defaultValue={taskId || ""}>
-              {taskOptions}
-            </select>
+            <Select
+              name="taskId"
+              required
+              defaultValue={taskId || ""}
+              placeholder="Choose a canonical task"
+              options={taskOptions}
+            />
           </Field>
           <Submit busy={busy}>Link task</Submit>
         </form>
@@ -266,9 +260,12 @@ export function GitHubEvidence({
               }}
             >
               <Field label="Explicit billing project">
-                <select name="projectId" required defaultValue="">
-                  {projectOptions}
-                </select>
+                <Select
+                  name="projectId"
+                  required
+                  placeholder="Choose a billing project"
+                  options={projectOptions}
+                />
               </Field>
               <Submit busy={busy}>Create and link local task</Submit>
             </form>
@@ -284,26 +281,29 @@ export function GitHubEvidence({
             }}
           >
             <Field label="Record time on a canonical task">
-              <select name="taskId" required defaultValue={taskId || ""}>
-                <option value="">Choose a confirmed linked task</option>
-                {confirmed
+              <Select
+                name="taskId"
+                required
+                defaultValue={taskId || ""}
+                placeholder="Choose a confirmed linked task"
+                options={confirmed
                   .filter(
                     (link) =>
                       !data.tasks.find((task) => task.id === link.task_id)
                         ?.review_blocked,
                   )
-                  .map((l) => (
-                    <option
-                      key={l.task_id}
-                      value={l.task_id}
-                      disabled={activeTimers.some(
-                        (entry) => entry.task_id === l.task_id,
-                      )}
-                    >
-                      {taskName(l.task_id)}
-                    </option>
-                  ))}
-              </select>
+                  .map((l) => {
+                    const running = activeTimers.some(
+                      (entry) => entry.task_id === l.task_id,
+                    );
+                    return {
+                      value: l.task_id,
+                      label: taskName(l.task_id),
+                      hint: running ? "Running" : undefined,
+                      disabled: running,
+                    };
+                  })}
+              />
             </Field>
             <Submit busy={busy} disabled={atCapacity}>
               Start timer on selected task
@@ -530,19 +530,23 @@ export function GitHubEvidence({
                 }}
               >
                 <Field label="Repository">
-                  <select name="externalId" required defaultValue="">
-                    <option value="">Choose repository</option>
-                    {repos.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    name="externalId"
+                    required
+                    placeholder="Choose repository"
+                    options={repos.map((r) => ({
+                      value: String(r.id),
+                      label: r.name,
+                    }))}
+                  />
                 </Field>
                 <Field label="Billing project">
-                  <select name="projectId" required defaultValue="">
-                    {projectOptions}
-                  </select>
+                  <Select
+                    name="projectId"
+                    required
+                    placeholder="Choose a billing project"
+                    options={projectOptions}
+                  />
                 </Field>
                 <Submit busy={busy}>Map and import pull requests</Submit>
               </form>

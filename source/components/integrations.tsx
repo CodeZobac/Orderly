@@ -12,6 +12,7 @@ import type {
 } from "@/lib/integration-types";
 import Link from "next/link";
 import { Field, Submit } from "./fields";
+import { Select } from "./select";
 import { NotionSourceDialog } from "./notion-source-dialog";
 import {
   NotionImportReview,
@@ -309,16 +310,17 @@ export function Integrations({
     defaultValue?: string,
     required = true,
   ) => (
-    <select name={name} required={required} defaultValue={defaultValue || ""}>
-      <option value="" disabled>
-        Choose billing project
-      </option>
-      {data.projects.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name} · {p.currency}
-        </option>
-      ))}
-    </select>
+    <Select
+      name={name}
+      required={required}
+      defaultValue={defaultValue || ""}
+      placeholder="Choose billing project"
+      options={data.projects.map((p) => ({
+        value: p.id,
+        label: p.name,
+        hint: p.currency,
+      }))}
+    />
   );
   return (
     <section className="integration-workbench" aria-label="Task integrations">
@@ -804,22 +806,19 @@ export function Integrations({
                   keeps its existing attribution.
                 </p>
                 <Field label="Link an Orderly task">
-                  <select name="taskId" defaultValue={t.task_id || ""}>
-                    <option value="">
-                      Create one task in the billing project
-                    </option>
-                    {data.tasks
+                  <Select
+                    name="taskId"
+                    defaultValue={t.task_id || ""}
+                    emptyOption="Create one task in the billing project"
+                    options={data.tasks
                       .filter((task) => !task.review_blocked)
-                      .map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.name} ·{" "}
-                          {
-                            data.projects.find((p) => p.id === x.project_id)
-                              ?.name
-                          }
-                        </option>
-                      ))}
-                  </select>
+                      .map((x) => ({
+                        value: x.id,
+                        label: x.name,
+                        group: data.projects.find((p) => p.id === x.project_id)
+                          ?.name,
+                      }))}
+                  />
                 </Field>
                 <Field label="Billing project (when creating a task)">
                   {projectSelect("projectId", undefined, false)}
