@@ -6,8 +6,12 @@ import { useWorkspace } from "./workspace-provider";
 import {
   ElapsedTimer,
   LongTimerNotice,
+  RunningAmount,
+  formatMinor,
   useWorkspaceDate,
 } from "./workspace-clock";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { StopIcon } from "@hugeicons/core-free-icons";
 import type { FormEvent } from "react";
 import type { Entry } from "@/lib/types";
 import { dayKey, duration, weekDays } from "@/lib/time";
@@ -264,6 +268,11 @@ function TrackerView() {
       data.projects.find((p) => p.id === task?.project_id)?.name || "Project"
     );
   };
+  const clientOf = (taskId: string) => {
+    const task = data.tasks.find((t) => t.id === taskId);
+    const project = data.projects.find((p) => p.id === task?.project_id);
+    return data.clients.find((c) => c.id === project?.client_id)?.name || "";
+  };
   const taskOptions = (
     projectId?: string,
     selected?: string,
@@ -502,8 +511,10 @@ function TrackerView() {
                   data-running="true"
                   key={entry.id}
                 >
-                  <div>
-                    <p>Working on {taskName(entry.task_id)}</p>
+                  <div className="running-main">
+                    <p className="running-task">
+                      Working on <strong>{taskName(entry.task_id)}</strong>
+                    </p>
                     <div
                       className="clock mono"
                       aria-label={`Elapsed time for ${taskName(entry.task_id)}`}
@@ -514,22 +525,73 @@ function TrackerView() {
                         offset={offset}
                       />
                     </div>
-                    <p>{projectName(entry.task_id)}</p>
+                    <p className="running-project">
+                      {projectName(entry.task_id)}
+                      {clientOf(entry.task_id) && (
+                        <span> · {clientOf(entry.task_id)}</span>
+                      )}
+                    </p>
                     <LongTimerNotice
                       start={entry.start}
                       serverNow={data.now}
                       offset={offset}
                     />
                   </div>
-                  <button
-                    className="primary"
-                    disabled={busy || !!retry}
-                    onClick={() =>
-                      void save({ action: "stop", entryId: entry.id })
-                    }
-                  >
-                    Stop timer
-                  </button>
+                  <div className="running-side">
+                    <button
+                      className="primary stop-timer"
+                      disabled={busy || !!retry}
+                      onClick={() =>
+                        void save({ action: "stop", entryId: entry.id })
+                      }
+                    >
+                      <HugeiconsIcon
+                        icon={StopIcon}
+                        size={16}
+                        strokeWidth={2.2}
+                      />
+                      Stop timer
+                    </button>
+                    <div className="running-earned">
+                      {!entry.billable ? (
+                        <>
+                          <span>Earned so far</span>
+                          <strong className="mono">Non-billable</strong>
+                          <small>Not included in billing</small>
+                        </>
+                      ) : entry.rate <= 0 ? (
+                        <>
+                          <span>Earned so far</span>
+                          <strong className="mono">
+                            {formatMinor(entry.currency, 0)}
+                          </strong>
+                          <small>
+                            No rate set ·{" "}
+                            <Link href="/projects">Set a rate</Link>
+                          </small>
+                        </>
+                      ) : (
+                        <>
+                          <span>Earned so far</span>
+                          <strong
+                            className="mono"
+                            aria-label={`Earned so far for ${taskName(entry.task_id)}`}
+                          >
+                            <RunningAmount
+                              start={entry.start}
+                              serverNow={data.now}
+                              offset={offset}
+                              rate={entry.rate}
+                              currency={entry.currency}
+                            />
+                          </strong>
+                          <small className="mono">
+                            {formatMinor(entry.currency, entry.rate)}/h
+                          </small>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </section>
               ))}
             </div>
