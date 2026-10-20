@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-10-20",
+    "scope": "Projects and Notion setup",
+    "macrostructure": "Workbench",
+    "theme": "custom",
+    "theme_axes": "cream / bold Geist / amber and plum",
+    "enrichment": "none",
+    "brief": "Projects catalogue with three creation accordions and a two-step native Notion setup dialog over a pink blurred backdrop",
+    "design_system": "DESIGN.md",
+    "visual_qa": "Authenticated screens unavailable in review browser; sign-in only. No automated checks or test suites run."
+  },
+  {
     "date": "2026-10-15",
     "scope": "app",
     "macrostructure": "Workbench",

@@ -70,6 +70,7 @@ import { Operations } from "./operations";
 import { Logo } from "./logo";
 import { WorkspaceLoader } from "./workspace-loader";
 import { TimerPreferences } from "./timer-preferences";
+import { ProjectsWorkbench } from "./projects-workbench";
 
 type Input = Record<string, unknown>;
 function form(event: FormEvent<HTMLFormElement>) {
@@ -259,11 +260,6 @@ function TrackerView() {
   const selectedTask = path.startsWith("/tasks/")
     ? data.tasks.find((t) => t.id === path.split("/")[2])
     : null;
-  async function create(event: FormEvent<HTMLFormElement>, action: string) {
-    const element = event.currentTarget;
-    const input = form(event);
-    if (await save({ ...input, action })) element.reset();
-  }
   function entries(list: Entry[]) {
     return list.length ? (
       <div className="entry-list">
@@ -582,196 +578,12 @@ function TrackerView() {
           <GitHubEvidence data={data} refresh={refresh} remindersOnly />
         )}
         {view === "Projects" && (
-          <>
-            <p className="lede">Give each piece of work a home.</p>
-            <div className="forms-grid">
-              <section>
-                <h2>Create a client</h2>
-                <form onSubmit={(e) => void create(e, "client")}>
-                  <Field label="Client name">
-                    <input name="name" required maxLength={200} />
-                  </Field>
-                  <Submit busy={busy} disabled={!!retry}>
-                    Add client
-                  </Submit>
-                </form>
-              </section>
-              <section>
-                <h2>Create a project</h2>
-                <form onSubmit={(e) => void create(e, "project")}>
-                  <Field label="Client">
-                    <select name="clientId" required>
-                      <option value="">Choose a client</option>
-                      {data.clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Project name">
-                    <input name="name" required maxLength={200} />
-                  </Field>
-                  <div className="form-row">
-                    <Field label="Currency">
-                      <input
-                        name="currency"
-                        defaultValue="EUR"
-                        pattern="[A-Z]{3}"
-                        maxLength={3}
-                        required
-                      />
-                    </Field>
-                    <Field label="Hourly rate">
-                      <input
-                        name="rate"
-                        defaultValue="0.00"
-                        inputMode="decimal"
-                        pattern="[0-9]{1,7}(\.[0-9]{1,2})?"
-                        required
-                      />
-                    </Field>
-                  </div>
-                  <Submit
-                    busy={busy}
-                    disabled={!!retry || !data.clients.length}
-                  >
-                    Add project
-                  </Submit>
-                </form>
-              </section>
-              <section>
-                <h2>Create a task</h2>
-                <form onSubmit={(e) => void create(e, "task")}>
-                  <Field label="Project">
-                    <select name="projectId" required>
-                      <option value="">Choose a project</option>
-                      {data.projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Task name">
-                    <input name="name" required maxLength={200} />
-                  </Field>
-                  <Submit
-                    busy={busy}
-                    disabled={!!retry || !data.projects.length}
-                  >
-                    Add task
-                  </Submit>
-                </form>
-              </section>
-            </div>
-            <section>
-              <h2>Projects & rates</h2>
-              {!data.projects.length && (
-                <p className="empty">
-                  No projects yet. Add your first client above.
-                </p>
-              )}
-              {data.projects.map((project) => (
-                <article className="project" key={project.id}>
-                  <div>
-                    <h3>{project.name}</h3>
-                    <p>
-                      {
-                        data.clients.find((c) => c.id === project.client_id)
-                          ?.name
-                      }{" "}
-                      · {project.currency} {(project.rate / 100).toFixed(2)}/h
-                    </p>
-                    {data.tasks
-                      .filter((t) => t.project_id === project.id)
-                      .map((t) => (
-                        <div className="project-task" key={t.id}>
-                          <Link href={`/tasks/${t.id}`}>{t.name}</Link>
-                          {t.external?.map((external, i) => (
-                            <span key={i}>
-                              {external.status}
-                              {external.assignee
-                                ? ` · ${external.assignee}`
-                                : ""}
-                              {!external.available ? " · unavailable" : ""}{" "}
-                              <a
-                                href={external.url}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Open in{" "}
-                                {external.provider === "notion"
-                                  ? "Notion"
-                                  : "Asana"}
-                              </a>
-                            </span>
-                          ))}
-                          {activeTimers.some(
-                            (entry) => entry.task_id === t.id,
-                          ) ? (
-                            <button
-                              disabled={busy || !!retry}
-                              onClick={() =>
-                                void save({
-                                  action: "stop",
-                                  entryId: activeTimers.find(
-                                    (entry) => entry.task_id === t.id,
-                                  )!.id,
-                                })
-                              }
-                            >
-                              Stop timer
-                            </button>
-                          ) : (
-                            <button
-                              disabled={
-                                busy ||
-                                !!retry ||
-                                atCapacity ||
-                                t.external?.some(
-                                  (external) =>
-                                    external.ambiguous && !external.explicit,
-                                )
-                              }
-                              onClick={() =>
-                                void save({ action: "start", taskId: t.id })
-                              }
-                            >
-                              Start timer
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                  <form
-                    onSubmit={(e) => {
-                      const input = form(e);
-                      void save({
-                        ...input,
-                        action: "rate",
-                        projectId: project.id,
-                      });
-                    }}
-                  >
-                    <Field label="New hourly rate">
-                      <input
-                        name="rate"
-                        inputMode="decimal"
-                        pattern="[0-9]{1,7}(\.[0-9]{1,2})?"
-                        required
-                        defaultValue={(project.rate / 100).toFixed(2)}
-                      />
-                    </Field>
-                    <Submit busy={busy} disabled={!!retry}>
-                      Update rate
-                    </Submit>
-                    <small>Existing entries retain their rate.</small>
-                  </form>
-                </article>
-              ))}
-            </section>
-          </>
+          <ProjectsWorkbench
+            data={data}
+            busy={busy}
+            blocked={!!retry}
+            save={save}
+          />
         )}
         {view === "Timesheet" && (
           <>

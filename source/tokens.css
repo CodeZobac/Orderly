@@ -57,6 +57,13 @@
   --color-shadow: oklch(25.7656% 0.090815 332.55185 / 0.14);
   --shadow-panel: 0 4px 0 var(--color-divider);
   --shadow-float: 0 8px 24px var(--color-shadow);
+  --color-dialog-backdrop: color-mix(
+    in srgb,
+    var(--color-rail) 80%,
+    transparent
+  );
+  --dialog-backdrop-blur: 12px;
+  --dialog-width: 46rem;
   --rule-width: 1px;
   --dur-short: 100ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
