@@ -21,6 +21,7 @@ import {
   validateMapping,
 } from "./providers";
 import { Problem } from "./problem";
+import { workImportReview } from "./import-review";
 
 export function provider(value: string): Provider {
   if (value !== "asana" && value !== "notion")
@@ -249,6 +250,7 @@ type Work = {
 // One invocation handles one page. PostgreSQL persists progress between invocations.
 // Three-minute connection lease serializes refresh across workers; writes are fenced.
 export async function workOnce(db: Database) {
+  if (await workImportReview(db)) return true;
   const work = await syncRpc<Work | null>(db, "claim", { lease: randomUUID() });
   if (!work) return false;
   const { job, source, connection: c } = work,

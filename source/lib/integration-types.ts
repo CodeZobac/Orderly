@@ -3,7 +3,7 @@ export type Property = {
   id: string;
   name: string;
   type: string;
-  options?: { id: string; name: string }[];
+  options?: { id: string; name: string; group?: string }[];
 };
 export type SourceOption = {
   id: string;
@@ -31,6 +31,7 @@ export type ExternalMetadata = {
   ambiguous: boolean;
   section?: string | null;
   status_id?: string;
+  status_group?: string;
   assignee_ids?: string[];
   updated_at?: string;
 };
@@ -70,6 +71,8 @@ export type ExternalTask = {
   explicit_link: boolean;
 };
 export type Integrations = {
+  reviewSetupRequired?: boolean;
+  reviews?: ImportReview[];
   notionWebhookConfigured?: boolean;
   connections: Connection[];
   sources: Source[];
@@ -78,6 +81,25 @@ export type Integrations = {
     source_id: string;
     external_task_id: string;
     available: boolean;
+  }[];
+};
+export type ReviewDecision = "ready" | "pending" | "discarded";
+export type ImportReview = {
+  source_id: string;
+  name: string;
+  project_id: string;
+  state: "collecting" | "queued" | "analyzing" | "complete" | "error";
+  error: string | null;
+  revision: number;
+  items: {
+    external_task_id: string;
+    name: string;
+    url: string;
+    status: string;
+    classification: ReviewDecision;
+    decision: ReviewDecision;
+    reason: string;
+    conflict: boolean;
   }[];
 };
 export type Credentials = {

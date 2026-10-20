@@ -7,6 +7,7 @@ export type Project = {
   rate: number;
 };
 export type Task = {
+  review_blocked?: boolean;
   id: string;
   project_id: string;
   name: string;

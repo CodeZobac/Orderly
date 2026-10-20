@@ -288,6 +288,13 @@ function properties(source: ObjectValue): Property[] {
       options: list(object(p[string(p.type)]).options).map((option) => ({
         id: string(option.id),
         name: string(option.name),
+        group: string(
+          list(object(p.status).groups).find(
+            (group) =>
+              Array.isArray(group.option_ids) &&
+              group.option_ids.includes(option.id),
+          )?.name,
+        ),
       })),
     };
   });
@@ -544,11 +551,19 @@ export async function importPage(
   }
   return {
     sourceName: source.name,
-    tasks: pages.map((x) => ({
-      ...normalizeNotion(x, mapping),
-      archived:
-        source.archived === true || x.in_trash === true || x.archived === true,
-    })),
+    tasks: pages.map((x) => {
+      const task = normalizeNotion(x, mapping);
+      return {
+        ...task,
+        status_group: source.properties
+          .find((property) => property.id === mapping.status)
+          ?.options?.find((option) => option.id === task.status_id)?.group,
+        archived:
+          source.archived === true ||
+          x.in_trash === true ||
+          x.archived === true,
+      };
+    }),
     cursor: result.has_more ? string(result.next_cursor) : null,
   };
 }

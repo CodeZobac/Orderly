@@ -115,11 +115,13 @@ export function GitHubEvidence({
   const taskOptions = (
     <>
       <option value="">Choose a canonical task</option>
-      {data.tasks.map((t) => (
-        <option key={t.id} value={t.id}>
-          {data.projects.find((p) => p.id === t.project_id)?.name} / {t.name}
-        </option>
-      ))}
+      {data.tasks
+        .filter((task) => !task.review_blocked)
+        .map((t) => (
+          <option key={t.id} value={t.id}>
+            {data.projects.find((p) => p.id === t.project_id)?.name} / {t.name}
+          </option>
+        ))}
     </>
   );
   const projectOptions = (
@@ -284,17 +286,23 @@ export function GitHubEvidence({
             <Field label="Record time on a canonical task">
               <select name="taskId" required defaultValue={taskId || ""}>
                 <option value="">Choose a confirmed linked task</option>
-                {confirmed.map((l) => (
-                  <option
-                    key={l.task_id}
-                    value={l.task_id}
-                    disabled={activeTimers.some(
-                      (entry) => entry.task_id === l.task_id,
-                    )}
-                  >
-                    {taskName(l.task_id)}
-                  </option>
-                ))}
+                {confirmed
+                  .filter(
+                    (link) =>
+                      !data.tasks.find((task) => task.id === link.task_id)
+                        ?.review_blocked,
+                  )
+                  .map((l) => (
+                    <option
+                      key={l.task_id}
+                      value={l.task_id}
+                      disabled={activeTimers.some(
+                        (entry) => entry.task_id === l.task_id,
+                      )}
+                    >
+                      {taskName(l.task_id)}
+                    </option>
+                  ))}
               </select>
             </Field>
             <Submit busy={busy} disabled={atCapacity}>

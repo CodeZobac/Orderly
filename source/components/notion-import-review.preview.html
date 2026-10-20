@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Import review — component preview</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../app/globals.css" />
+    <style>
+      :root {
+        --font-geist-sans: Arial;
+        --font-geist-mono: monospace;
+      }
+      body {
+        padding: var(--space-lg);
+        font-family: var(--font-body);
+        background: var(--color-rail);
+        color: var(--color-ink);
+      }
+      main {
+        max-width: 46rem;
+        margin: auto;
+      }
+      .preview-state {
+        margin-block: var(--space-lg);
+        padding: var(--space-md);
+        background: var(--color-paper);
+      }
+      .is-hover {
+        background: var(--color-accent-hover);
+      }
+      .is-focus {
+        outline: 3px solid var(--color-focus);
+        outline-offset: 3px;
+      }
+      .is-active {
+        background: var(--color-accent-active);
+      }
+      .preview-dialog {
+        position: relative;
+        display: block;
+        width: 100%;
+        max-height: none;
+      }
+      .preview-dialog .notion-setup-form {
+        max-height: none;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      .preview-widths {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+      }
+      iframe {
+        display: block;
+        border: 1px solid var(--color-rule);
+        height: 45rem;
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Notion review · visual preview</h1>
+      <p>
+        Sample content only. No account, import, or AI requests. Production
+        interaction and data flow require separate acceptance review.
+      </p>
+      <div class="preview-widths">
+        <button data-width="320">320px</button
+        ><button data-width="375">375px</button
+        ><button data-width="414">414px</button
+        ><button data-width="768">768px</button
+        ><button data-width="1440">1440px</button>
+      </div>
+      <div id="responsive"></div>
+      <section class="preview-state">
+        <h2>Default</h2>
+        <button id="open" class="primary">Review import</button>
+      </section>
+      <dialog
+        class="notion-source-dialog"
+        id="modal"
+        aria-labelledby="preview-title"
+      >
+        <div class="notion-setup-form">
+          <header class="notion-dialog-header">
+            <div>
+              <p>Notion · AI import validator</p>
+              <h2 id="preview-title" tabindex="-1">
+                Sample project with a long source name
+              </h2>
+            </div>
+            <button id="close" aria-label="Close import review">×</button>
+          </header>
+          <div class="notion-dialog-body">
+            <p>
+              Sample project · Sample client. Ready and accepted tasks use this
+              project’s billing client.
+            </p>
+            <p role="status">Import analyzed</p>
+            <div class="review-counts">
+              <span class="review-flag review-ready"
+                ><span>✓</span> Ready <strong>1</strong></span
+              ><span class="review-flag review-pending"
+                ><span>⚑</span> Pending review <strong>1</strong></span
+              ><span class="review-flag review-discarded"
+                ><span>×</span> Discarded <strong>1</strong></span
+              >
+            </div>
+            <p>
+              Completed tasks stay recoverable. Doing tasks await your review.
+            </p>
+            <details open class="review-disclosure">
+              <summary>Expand review</summary>
+              <section class="review-group">
+                <div class="review-group-heading">
+                  <h3 class="review-flag review-pending">
+                    <span>⚑</span> Pending review (1)
+                  </h3>
+                  <button>Accept all</button>
+                </div>
+                <ul class="review-task-list">
+                  <li>
+                    <div>
+                      <strong
+                        >A sample task with a long name that wraps naturally on
+                        mobile</strong
+                      >
+                      <p>Em andamento · Work is in progress.</p>
+                      <a href="#preview-title">Open in Notion</a>
+                    </div>
+                    <label
+                      ><span>Review decision</span
+                      ><select>
+                        <option>Hold · Pending review</option>
+                        <option>Accept · Ready</option>
+                        <option>Discard · Recoverable</option>
+                      </select></label
+                    >
+                  </li>
+                </ul>
+              </section>
+            </details>
+          </div>
+          <footer class="notion-dialog-footer">
+            <a href="#preview-title">View project</a>
+            <div class="notion-dialog-navigation">
+              <button id="cancel">Cancel</button
+              ><button class="primary">Apply changes</button>
+            </div>
+          </footer>
+        </div>
+      </dialog>
+      <section class="preview-state">
+        <h2>Hover</h2>
+        <button class="primary is-hover">Review import</button>
+      </section>
+      <section class="preview-state">
+        <h2>Focus</h2>
+        <button class="primary is-focus">Review import</button>
+      </section>
+      <section class="preview-state">
+        <h2>Pressed</h2>
+        <button class="primary is-active">Review import</button>
+      </section>
+      <section class="preview-state">
+        <h2>Disabled</h2>
+        <button class="primary" disabled>Apply changes</button>
+      </section>
+      <section class="preview-state">
+        <h2>Loading</h2>
+        <p role="status">Analyzing task statuses…</p>
+        <button class="primary" disabled aria-busy="true">Saving…</button>
+      </section>
+      <section class="preview-state">
+        <h2>Error</h2>
+        <p class="dialog-notice" role="alert">
+          AI analysis is unavailable. Retry analysis or review the tasks
+          manually.
+        </p>
+        <button>Retry analysis</button>
+      </section>
+      <section class="preview-state">
+        <h2>Success</h2>
+        <p role="status">
+          Review changes saved. Accepted tasks are available in your project.
+        </p>
+      </section>
+    </main>
+    <script>
+      const modal = document.getElementById("modal");
+      document.getElementById("open").onclick = () => {
+        modal.showModal();
+        document.getElementById("preview-title").focus();
+      };
+      for (const id of ["close", "cancel"])
+        document.getElementById(id).onclick = () => modal.close();
+      if (new URLSearchParams(location.search).has("frame")) {
+        document.querySelector(".preview-widths").remove();
+        modal.classList.add("preview-dialog");
+        modal.setAttribute("open", "");
+        document.querySelector("main").replaceChildren(modal);
+      } else {
+        document.querySelectorAll("[data-width]").forEach(
+          (button) =>
+            (button.onclick = () => {
+              const host = document.getElementById("responsive");
+              const frame = document.createElement("iframe");
+              frame.title = button.dataset.width + " pixel preview";
+              frame.style.width = button.dataset.width + "px";
+              frame.src = "notion-import-review.preview.html?frame";
+              host.replaceChildren(frame);
+            }),
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -96,3 +96,9 @@ Settings has General (`/settings`) and Connections (`/settings/connections`). Co
 See [Connections and timers handoff](../docs/implementation/handoffs/connections-parallel-timers.md) for migration, setup blockers, and acceptance scenarios. The schema must be deployed before using the new controls.
 
 Vercel queue execution details and production diagnosis are recorded in the [Connections handoff](../docs/implementation/handoffs/connections-parallel-timers.md#vercel-queue-wake-up-follow-up--2026-10-20). The dialog follows refreshed import status; a queued configuration is not yet a completed task scan.
+
+### Notion import review
+
+Initial Notion imports receive a one-time status review: Ready tasks are available automatically, Doing/unclear statuses await review, and completed tasks stay recoverable in Discarded. Later new tasks import normally. Connections provides a compact summary and review popup, individual decisions and bulk acceptance. Historical billing and running-timer stop controls are retained.
+
+Deploy `20261020193128_notion_import_review.sql` through the Supabase GitHub integration and configure server-only `DEEPSEEK_API_KEY`. The fixed model is `deepseek-flash` (V4.1 Flash); only distinct status vocabulary is sent. Missing configuration offers manual review/retry. A pending migration is displayed explicitly. See `../docs/implementation/handoffs/notion-import-review.md` for rollout and unexecuted acceptance scenarios.

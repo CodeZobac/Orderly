@@ -78,7 +78,7 @@ export function ProjectsWorkbench({
         <div className="project-ledger">
           {data.projects.map((project) => {
             const tasks = data.tasks.filter(
-              (task) => task.project_id === project.id,
+              (task) => task.project_id === project.id && !task.review_blocked,
             );
             const client = data.clients.find(
               (item) => item.id === project.client_id,

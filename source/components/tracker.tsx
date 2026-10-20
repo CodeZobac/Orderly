@@ -230,18 +230,23 @@ function TrackerView() {
   const taskSelect = (selected?: string, excludeRunning = false) => (
     <select name="taskId" defaultValue={selected} required>
       <option value="">Choose a task</option>
-      {data.tasks.map((t) => (
-        <option
-          key={t.id}
-          value={t.id}
-          disabled={
-            excludeRunning &&
-            activeTimers.some((entry) => entry.task_id === t.id)
-          }
-        >
-          {projectName(t.id)} / {t.name}
-        </option>
-      ))}
+      {data.tasks
+        .filter(
+          (task) =>
+            !task.review_blocked || (!excludeRunning && task.id === selected),
+        )
+        .map((t) => (
+          <option
+            key={t.id}
+            value={t.id}
+            disabled={
+              excludeRunning &&
+              activeTimers.some((entry) => entry.task_id === t.id)
+            }
+          >
+            {projectName(t.id)} / {t.name}
+          </option>
+        ))}
     </select>
   );
   const view = path.startsWith("/projects")
@@ -471,7 +476,11 @@ function TrackerView() {
                 <Field label="Task">{taskSelect(selectedTask?.id, true)}</Field>
                 <Submit
                   busy={busy}
-                  disabled={!!retry || atCapacity || !data.tasks.length}
+                  disabled={
+                    !!retry ||
+                    atCapacity ||
+                    !data.tasks.some((task) => !task.review_blocked)
+                  }
                 >
                   Start timer
                 </Submit>
@@ -517,50 +526,56 @@ function TrackerView() {
                     <p>This task does not exist in your workspace.</p>
                   )}
                 </>
-              ) : data.tasks.length ? (
+              ) : data.tasks.some((task) => !task.review_blocked) ? (
                 <div className="task-list">
-                  {data.tasks.map((task) => (
-                    <div key={task.id}>
-                      <Link href={`/tasks/${task.id}`}>
-                        <strong>{task.name}</strong>
-                        <span>{projectName(task.id)}</span>
-                        {task.external?.map((e, index) => (
-                          <span key={`${e.provider}-${index}`}>
-                            {e.provider === "asana" ? "Asana" : "Notion"} ·{" "}
-                            {e.status}
-                            {e.assignee ? ` · ${e.assignee}` : ""}
-                            {e.archived || !e.available
-                              ? " · archived / unavailable"
-                              : ""}
-                            {e.ambiguous && !e.explicit
-                              ? " · billing assignment required in Settings"
-                              : ""}
-                          </span>
-                        ))}
-                      </Link>
-                      <button
-                        disabled={
-                          busy ||
-                          !!retry ||
-                          atCapacity ||
-                          activeTimers.some(
+                  {data.tasks
+                    .filter((task) => !task.review_blocked)
+                    .map((task) => (
+                      <div key={task.id}>
+                        <Link href={`/tasks/${task.id}`}>
+                          <strong>{task.name}</strong>
+                          <span>{projectName(task.id)}</span>
+                          {task.external?.map((e, index) => (
+                            <span key={`${e.provider}-${index}`}>
+                              {e.provider === "asana" ? "Asana" : "Notion"} ·{" "}
+                              {e.status}
+                              {e.assignee ? ` · ${e.assignee}` : ""}
+                              {e.archived || !e.available
+                                ? " · archived / unavailable"
+                                : ""}
+                              {e.ambiguous && !e.explicit
+                                ? " · billing assignment required in Settings"
+                                : ""}
+                            </span>
+                          ))}
+                        </Link>
+                        <button
+                          disabled={
+                            busy ||
+                            !!retry ||
+                            atCapacity ||
+                            activeTimers.some(
+                              (entry) => entry.task_id === task.id,
+                            ) ||
+                            task.external?.some(
+                              (e) => e.ambiguous && !e.explicit,
+                            )
+                          }
+                          onClick={() =>
+                            void save({
+                              action: "start",
+                              taskId: task.id,
+                            })
+                          }
+                        >
+                          {activeTimers.some(
                             (entry) => entry.task_id === task.id,
-                          ) ||
-                          task.external?.some((e) => e.ambiguous && !e.explicit)
-                        }
-                        onClick={() =>
-                          void save({
-                            action: "start",
-                            taskId: task.id,
-                          })
-                        }
-                      >
-                        {activeTimers.some((entry) => entry.task_id === task.id)
-                          ? "Running"
-                          : "Start / resume"}
-                      </button>
-                    </div>
-                  ))}
+                          )
+                            ? "Running"
+                            : "Start / resume"}
+                        </button>
+                      </div>
+                    ))}
                 </div>
               ) : (
                 <p className="empty">

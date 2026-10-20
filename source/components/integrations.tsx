@@ -13,6 +13,11 @@ import type {
 import Link from "next/link";
 import { Field, Submit } from "./fields";
 import { NotionSourceDialog } from "./notion-source-dialog";
+import {
+  NotionImportReview,
+  ReviewCounts,
+  reviewLabel,
+} from "./notion-import-review";
 import { NotionWebhookSetup } from "./notion-webhook-setup";
 
 function importStatus(source?: Source) {
@@ -49,6 +54,9 @@ export function Integrations({
   data: Snapshot;
   refresh: () => Promise<void>;
 }) {
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const reviewOpener = useRef<HTMLElement | null>(null);
+  const dismissedReviews = useRef(new Set<string>());
   const [notionSetup, setNotionSetup] = useState<{
     connection: Connection;
     sourceId: string;
@@ -79,6 +87,26 @@ export function Integrations({
     return value as State;
   }, []);
   useEffect(() => {
+    if (notionSetup || reviewId) return;
+    const candidate = state?.reviews?.find((review) => {
+      if (dismissedReviews.current.has(review.source_id)) return false;
+      try {
+        return !localStorage.getItem(
+          `orderly-review-dismissed:${review.source_id}`,
+        );
+      } catch {
+        return true;
+      }
+    });
+    if (candidate) {
+      reviewOpener.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      setReviewId(candidate.source_id);
+    }
+  }, [state?.reviews, notionSetup, reviewId]);
+  useEffect(() => {
     let cancelled = false;
     let pending = false;
     let lastWake = 0;
@@ -90,14 +118,15 @@ export function Integrations({
       try {
         const latest = await load(controller.signal);
         if (cancelled) return;
-        const signature = JSON.stringify(
+        const signature = JSON.stringify([
+          latest.reviews?.map((review) => [review.source_id, review.revision]),
           latest.sources.map((source) => [
             source.id,
             source.status,
             source.last_success,
             source.project_id,
           ]),
-        );
+        ]);
         if (signature !== lastState) {
           lastState = signature;
           await refresh();
@@ -115,9 +144,13 @@ export function Integrations({
               source.status,
             ),
         );
-        const queued = eligible.some((source) =>
-          ["queued", "syncing", "error"].includes(source.status),
-        );
+        const queued =
+          latest.reviews?.some((review) =>
+            ["queued", "analyzing"].includes(review.state),
+          ) ||
+          eligible.some((source) =>
+            ["queued", "syncing", "error"].includes(source.status),
+          );
         if (
           eligible.length &&
           Date.now() - lastWake >= (queued ? 15000 : 60000)
@@ -613,84 +646,187 @@ export function Integrations({
         />
       )}
       {state?.tasks.some(
-        (t) => !t.task_id || (t.metadata.ambiguous && !t.explicit_link),
+        (t) =>
+          state.connections.find(
+            (connection) => connection.id === t.connection_id,
+          )?.provider === "asana" &&
+          (!t.task_id || (t.metadata.ambiguous && !t.explicit_link)),
       ) && (
         <p role="status">
-          Some imported tasks need a billing assignment. Open Imported tasks &
-          billing links below to confirm their project.
+          Some Asana tasks need a billing assignment. Open Asana tasks & billing
+          links below to confirm their project.
         </p>
       )}
-      {!!state?.tasks.length && (
-        <details>
-          <summary>
-            Imported tasks & billing links ({state.tasks.length})
-          </summary>
-          {state.tasks.map((t) => (
-            <form
-              className="integration-mapping"
-              key={t.id}
-              onSubmit={(event) => {
-                event.preventDefault();
-                const values = Object.fromEntries(
-                  new FormData(event.currentTarget),
-                );
-                void run(async () => {
-                  await post({
-                    action: "link",
-                    externalTaskId: t.id,
-                    ...values,
-                  });
+      {state?.reviewSetupRequired && (
+        <p role="status" className="dialog-notice">
+          Notion import review is awaiting its database migration. Your existing
+          projects and time history are retained.
+        </p>
+      )}
+      {!!state?.reviews?.length && (
+        <section
+          className="import-review-summaries"
+          aria-label="Notion import analysis"
+        >
+          <h2>Notion import analysis</h2>
+          {state.reviews.map((review) => (
+            <article className="import-review-summary" key={review.source_id}>
+              <div>
+                <h3>{review.name}</h3>
+                <p role="status">{reviewLabel(review)}</p>
+              </div>
+              <ReviewCounts review={review} />
+              <button
+                onClick={(event) => {
+                  reviewOpener.current = event.currentTarget;
+                  setReviewId(review.source_id);
+                }}
+              >
+                Review import
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+      {reviewId &&
+        !notionSetup &&
+        state?.reviews
+          ?.filter((review) => review.source_id === reviewId)
+          .map((review) => {
+            const project = data.projects.find(
+              (item) => item.id === review.project_id,
+            );
+            return (
+              <NotionImportReview
+                key={review.source_id}
+                review={review}
+                sourceError={
+                  state.sources.find((source) => source.id === review.source_id)
+                    ?.error
+                }
+                projectName={project?.name || review.name}
+                clientName={
+                  data.clients.find(
+                    (client) => client.id === project?.client_id,
+                  )?.name || "Project billing client"
+                }
+                opener={reviewOpener.current}
+                reload={async () => {
                   await load();
                   await refresh();
-                });
-              }}
-            >
-              <h3>{t.metadata.name}</h3>
-              <p>
-                {
-                  state.connections.find((c) => c.id === t.connection_id)
-                    ?.provider
-                }{" "}
-                · {t.metadata.status}
-                {t.metadata.archived ? " · archived" : ""}
-              </p>
-              {/^https:\/\//.test(t.metadata.url) && (
+                }}
+                onClose={() => {
+                  dismissedReviews.current.add(review.source_id);
+                  try {
+                    localStorage.setItem(
+                      `orderly-review-dismissed:${review.source_id}`,
+                      "1",
+                    );
+                  } catch {
+                    /* In-memory dismissal still works. */
+                  }
+                  setReviewId(null);
+                }}
+              />
+            );
+          })}
+      {!!state?.tasks.filter(
+        (task) =>
+          state.connections.find(
+            (connection) => connection.id === task.connection_id,
+          )?.provider === "asana",
+      ).length && (
+        <details>
+          <summary>
+            Asana tasks & billing links (
+            {
+              state.tasks.filter(
+                (task) =>
+                  state.connections.find(
+                    (connection) => connection.id === task.connection_id,
+                  )?.provider === "asana",
+              ).length
+            }
+            )
+          </summary>
+          {state.tasks
+            .filter(
+              (task) =>
+                state.connections.find(
+                  (connection) => connection.id === task.connection_id,
+                )?.provider === "asana",
+            )
+            .map((t) => (
+              <form
+                className="integration-mapping"
+                key={t.id}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const values = Object.fromEntries(
+                    new FormData(event.currentTarget),
+                  );
+                  void run(async () => {
+                    await post({
+                      action: "link",
+                      externalTaskId: t.id,
+                      ...values,
+                    });
+                    await load();
+                    await refresh();
+                  });
+                }}
+              >
+                <h3>{t.metadata.name}</h3>
                 <p>
-                  <a href={t.metadata.url} target="_blank" rel="noreferrer">
-                    Open in provider
-                  </a>
+                  {
+                    state.connections.find((c) => c.id === t.connection_id)
+                      ?.provider
+                  }{" "}
+                  · {t.metadata.status}
+                  {t.metadata.archived ? " · archived" : ""}
                 </p>
-              )}
-              {t.metadata.ambiguous && !t.explicit_link && (
+                {/^https:\/\//.test(t.metadata.url) && (
+                  <p>
+                    <a href={t.metadata.url} target="_blank" rel="noreferrer">
+                      Open in provider
+                    </a>
+                  </p>
+                )}
+                {t.metadata.ambiguous && !t.explicit_link && (
+                  <p>
+                    Billing assignment required: this Asana task belongs to
+                    several projects. Choose one billing project or link an
+                    existing task.
+                  </p>
+                )}
                 <p>
-                  Billing assignment required: this Asana task belongs to
-                  several projects. Choose one billing project or link an
-                  existing task.
+                  Link explicitly before tracking. A task with recorded time
+                  keeps its existing attribution.
                 </p>
-              )}
-              <p>
-                Link explicitly before tracking. A task with recorded time keeps
-                its existing attribution.
-              </p>
-              <Field label="Link an Orderly task">
-                <select name="taskId" defaultValue={t.task_id || ""}>
-                  <option value="">
-                    Create one task in the billing project
-                  </option>
-                  {data.tasks.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.name} ·{" "}
-                      {data.projects.find((p) => p.id === x.project_id)?.name}
+                <Field label="Link an Orderly task">
+                  <select name="taskId" defaultValue={t.task_id || ""}>
+                    <option value="">
+                      Create one task in the billing project
                     </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Billing project (when creating a task)">
-                {projectSelect("projectId", undefined, false)}
-              </Field>
-              <Submit busy={busy}>Confirm assignment</Submit>
-            </form>
-          ))}
+                    {data.tasks
+                      .filter((task) => !task.review_blocked)
+                      .map((x) => (
+                        <option key={x.id} value={x.id}>
+                          {x.name} ·{" "}
+                          {
+                            data.projects.find((p) => p.id === x.project_id)
+                              ?.name
+                          }
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+                <Field label="Billing project (when creating a task)">
+                  {projectSelect("projectId", undefined, false)}
+                </Field>
+                <Submit busy={busy}>Confirm assignment</Submit>
+              </form>
+            ))}
         </details>
       )}
       <details className="integration-sync-help">

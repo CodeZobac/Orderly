@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { authenticate } from "@/lib/auth";
-import { database } from "@/lib/db";
+import { database, MissingRpc } from "@/lib/db";
 import { body, failure, originCheck } from "@/lib/http";
 import { integrationAction, integrationRpc } from "@/lib/integrations";
 import { scheduleSync } from "@/lib/sync-runner";
@@ -28,6 +28,18 @@ export async function GET() {
     state.sources = state.sources.filter((s) => ids.has(s.connection_id));
     state.notionWebhookConfigured =
       !!process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN;
+    try {
+      state.reviews = await db.rpc("orderly_review", {
+        owner,
+        command: "list",
+        input: {},
+      });
+    } catch (error) {
+      if (!(error instanceof MissingRpc) || error.rpcName !== "orderly_review")
+        throw error;
+      state.reviews = [];
+      state.reviewSetupRequired = true;
+    }
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });
