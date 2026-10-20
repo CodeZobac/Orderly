@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Select } from "./select";
 import type { ImportReview, ReviewDecision } from "@/lib/integration-types";
 
 const GROUPS: { key: ReviewDecision; label: string; symbol: string }[] = [
@@ -311,27 +312,30 @@ export function NotionImportReview({
                           </div>
                           <label>
                             <span>Review decision</span>
-                            <select
+                            <Select
                               aria-label={`Decision for ${item.name}`}
                               disabled={busy || conflict}
                               value={
                                 draft[item.external_task_id] || item.decision
                               }
-                              onChange={(event) =>
+                              onChange={(value) =>
                                 choose(
                                   item.external_task_id,
-                                  event.target.value as ReviewDecision,
+                                  value as ReviewDecision,
                                 )
                               }
-                            >
-                              <option value="ready">Accept · Ready</option>
-                              <option value="pending">
-                                Hold · Pending review
-                              </option>
-                              <option value="discarded">
-                                Discard · Recoverable
-                              </option>
-                            </select>
+                              options={[
+                                { value: "ready", label: "Accept · Ready" },
+                                {
+                                  value: "pending",
+                                  label: "Hold · Pending review",
+                                },
+                                {
+                                  value: "discarded",
+                                  label: "Discard · Recoverable",
+                                },
+                              ]}
+                            />
                           </label>
                         </li>
                       ))}

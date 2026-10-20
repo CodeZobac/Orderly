@@ -4,6 +4,14 @@ import { writeFileSync } from "node:fs";
 import type { Integrations } from "../lib/integration-types";
 import type { Snapshot } from "../lib/types";
 import type { GitHubSnapshot } from "../lib/github-types";
+import type { Locator } from "@playwright/test";
+
+// Orderly selects are filterable comboboxes: type to filter, then pick the option.
+async function choose(combobox: Locator, label: string) {
+  await combobox.click();
+  await combobox.fill(label);
+  await combobox.page().getByRole("option", { name: label }).first().click();
+}
 
 test("GitHub task evidence, explicit suggestions and timer selection with mocked providers", async ({
   page,
@@ -173,9 +181,10 @@ test("GitHub task evidence, explicit suggestions and timer selection with mocked
     .click();
   await expect(card.getByText("00:45:00 recorded on task")).toBeVisible();
   expect(work.entries).toHaveLength(1);
-  await card
-    .getByRole("combobox", { name: "Record time on a canonical task" })
-    .selectOption("asana-task");
+  await choose(
+    card.getByRole("combobox", { name: "Record time on a canonical task" }),
+    "Design Asana",
+  );
   await card
     .getByRole("button", { name: "Start timer on selected task" })
     .click();
@@ -322,8 +331,8 @@ test("Notion mapping, import status and timer controls with mocked provider resp
   await page.goto("/settings");
   await page.getByRole("button", { name: "Choose sources" }).click();
   await page.getByRole("button", { name: "Tasks", exact: true }).click();
-  await page.getByLabel("Orderly billing project").selectOption("project");
-  await page.getByLabel("status property (optional)").selectOption("status-id");
+  await choose(page.getByLabel("Orderly billing project"), "Client work");
+  await choose(page.getByLabel("status property (optional)"), "Progress");
   for (const width of [320, 375, 414, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
@@ -336,8 +345,10 @@ test("Notion mapping, import status and timer controls with mocked provider resp
   await expect(page.getByText("Billing · synced")).toBeVisible();
   await page.getByRole("button", { name: "Refresh sync status" }).click();
   await page.goto("/");
-  await expect(page.getByText("Notion · Doing")).toBeVisible();
-  await page.getByRole("button", { name: "Start / resume" }).click();
+  // Imported status now appears beside the task in the project's timer dropdown.
+  await page.getByRole("combobox", { name: "Task in Billing" }).click();
+  await page.getByRole("option", { name: /Notion · Doing/ }).click();
+  await page.getByRole("button", { name: "Start timer", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Stop timer", exact: true }),
   ).toBeVisible();
@@ -375,23 +386,19 @@ test("core journey, concurrency, persistence, ownership and responsive contrast"
     .getByRole("textbox", { name: "Client name", exact: true })
     .fill("North Studio");
   await page.getByRole("button", { name: "Add client", exact: true }).click();
-  await expect(
-    page
-      .getByRole("combobox", { name: "Client", exact: true })
-      .locator("option"),
-  ).toHaveCount(2);
-  await page
-    .getByRole("combobox", { name: "Client", exact: true })
-    .selectOption({ label: "North Studio" });
+  await page.getByRole("combobox", { name: "Client", exact: true }).click();
+  await expect(page.getByRole("option")).toHaveCount(2);
+  await page.getByRole("option", { name: "North Studio", exact: true }).click();
   await page.getByLabel("Project name").fill("Portfolio");
   await page.getByLabel("Hourly rate", { exact: true }).fill("85.50");
   await page.getByRole("button", { name: "Add project", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Portfolio", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Project", exact: true })
-    .selectOption({ label: "Portfolio" });
+  await choose(
+    page.getByRole("combobox", { name: "Project", exact: true }),
+    "Portfolio",
+  );
   await page.getByLabel("Task name").fill("Build the homepage");
   await page.getByRole("button", { name: "Add task", exact: true }).click();
   await expect(
@@ -615,16 +622,16 @@ test("manual UTC validation, timezone and retry after a lost save acknowledgment
     currency: "EUR",
     rate: "60.00",
   });
-  data = await action({
+  await action({
     action: "task",
     projectId: data.projects[0].id,
     name: "Interview",
   });
-  const taskId = data.tasks[0].id;
   await page.goto("/");
-  await page
-    .getByRole("combobox", { name: "Task", exact: true })
-    .selectOption(taskId);
+  await choose(
+    page.getByRole("combobox", { name: "Task in Research", exact: true }),
+    "Interview",
+  );
   let intercepted = false;
   await page.route("**/api/work", async (route) => {
     if (
@@ -656,9 +663,10 @@ test("manual UTC validation, timezone and retry after a lost save acknowledgment
   await page.getByRole("button", { name: "Save timezone" }).click();
   await expect(page.locator(".timezone")).toHaveText("Europe/Lisbon");
   await page.goto("/timesheet");
-  await page
-    .getByRole("combobox", { name: "Task", exact: true })
-    .selectOption(taskId);
+  await choose(
+    page.getByRole("combobox", { name: "Task", exact: true }),
+    "Interview",
+  );
   const start = new Date(Date.now() - 3600000).toISOString().slice(0, 23),
     end = new Date(Date.now() - 1800000).toISOString().slice(0, 23);
   await page.getByLabel("Start · UTC", { exact: true }).fill(end);
