@@ -1,0 +1,220 @@
+{
+  "observations": [
+    {
+      "path": "/",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    },
+    {
+      "path": "/projects",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/projects",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/projects",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/projects",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/projects",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    },
+    {
+      "path": "/timesheet",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/timesheet",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/timesheet",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/timesheet",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/timesheet",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    },
+    {
+      "path": "/billing",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/billing",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/billing",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/billing",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/billing",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    },
+    {
+      "path": "/tasks/task",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/tasks/task",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/tasks/task",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/tasks/task",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/tasks/task",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    },
+    {
+      "path": "/settings",
+      "width": 320,
+      "scrollWidth": 320,
+      "viewport": 320,
+      "clippedControls": []
+    },
+    {
+      "path": "/settings",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewport": 375,
+      "clippedControls": []
+    },
+    {
+      "path": "/settings",
+      "width": 414,
+      "scrollWidth": 414,
+      "viewport": 414,
+      "clippedControls": []
+    },
+    {
+      "path": "/settings",
+      "width": 768,
+      "scrollWidth": 768,
+      "viewport": 768,
+      "clippedControls": []
+    },
+    {
+      "path": "/settings",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "clippedControls": []
+    }
+  ],
+  "errors": [],
+  "reducedMotion": {
+    "animation": "none",
+    "opacity": "1"
+  },
+  "review": "Isolated screenshot/layout review with mocked local data, not a test-suite run. Settings re-reviewed after shortening GitHub setup label."
+}

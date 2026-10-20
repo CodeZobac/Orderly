@@ -1,1 +1,44 @@
-[{"date":"2026-10-10","macrostructure":"Workbench (component extension)","theme":"custom","theme_axes":"light / grotesk-sans / warm","enrichment":"none","brief":"Phase 2 provider connections, source mappings and billing links; inherits existing tokens","visual_qa":"unperformed under no-test preference"},{"date":"2026-10-09","macrostructure":"Workbench","theme":"custom","theme_axes":"light / grotesk-sans / warm","vibe":"warm precise quiet working ledger","nav":"N3 adapted workspace rail","footer":"Ft2","enrichment":"none","brief":"Orderly solo freelancer tracker: amber working ledger"}]
+[
+  {
+    "date": "2026-10-15",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "theme": "custom",
+    "theme_axes": "cream / bold Geist / amber and plum",
+    "vibe": "bold chromatic precision without grey",
+    "enrichment": "none",
+    "brief": "Applied Stitch Chromatic Precision across Orderly; bold triangle/13/chess-clock vector logo, shared branded loader and favicons",
+    "design_system": "design.md",
+    "stitch_project": "5081611970362115756",
+    "visual_qa": "Mocked local screenshot/layout review: six routes at320/375/414/768/1440; no overflow/clipped controls after one label fix; auth and reduced-motion loader inspected. No test suites run."
+  },
+  {
+    "date": "2026-10-10",
+    "macrostructure": "Workbench (component extension)",
+    "theme": "custom",
+    "theme_axes": "light / grotesk-sans / warm",
+    "enrichment": "none",
+    "brief": "Phase 4 billing review, immutable reports and owned sync monitoring; inherited amber tokens",
+    "visual_qa": "unperformed under no-test preference"
+  },
+  {
+    "date": "2026-10-10",
+    "macrostructure": "Workbench (component extension)",
+    "theme": "custom",
+    "theme_axes": "light / grotesk-sans / warm",
+    "enrichment": "none",
+    "brief": "Phase 2 provider connections, source mappings and billing links; inherits existing tokens",
+    "visual_qa": "unperformed under no-test preference"
+  },
+  {
+    "date": "2026-10-09",
+    "macrostructure": "Workbench",
+    "theme": "custom",
+    "theme_axes": "light / grotesk-sans / warm",
+    "vibe": "warm precise quiet working ledger",
+    "nav": "N3 adapted workspace rail",
+    "footer": "Ft2",
+    "enrichment": "none",
+    "brief": "Orderly solo freelancer tracker: amber working ledger"
+  }
+]

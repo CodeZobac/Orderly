@@ -3,66 +3,120 @@
     "fg": "ink",
     "bg": "paper",
     "min": 7,
-    "ratio": 15.712465000696431
+    "ratio": 15.98483875610611
+  },
+  {
+    "fg": "ink",
+    "bg": "surface",
+    "min": 7,
+    "ratio": 16.835079117639644
   },
   {
     "fg": "muted",
     "bg": "paper",
     "min": 4.5,
-    "ratio": 7.492927441665458
+    "ratio": 12.000520922819183
   },
   {
     "fg": "muted",
     "bg": "paper-2",
     "min": 4.5,
-    "ratio": 6.5542076896961685
-  },
-  {
-    "fg": "ink",
-    "bg": "accent",
-    "min": 4.5,
-    "ratio": 8.275358913530763
-  },
-  {
-    "fg": "ink",
-    "bg": "accent-hover",
-    "min": 4.5,
-    "ratio": 6.942003634344195
-  },
-  {
-    "fg": "ink",
-    "bg": "accent-active",
-    "min": 4.5,
-    "ratio": 5.770019820607158
+    "ratio": 11.370546035358815
   },
   {
     "fg": "muted",
     "bg": "disabled",
     "min": 4.5,
-    "ratio": 5.632608467145166
+    "ratio": 9.778370208117478
+  },
+  {
+    "fg": "ink",
+    "bg": "accent",
+    "min": 4.5,
+    "ratio": 10.27026328185862
+  },
+  {
+    "fg": "ink",
+    "bg": "accent-hover",
+    "min": 4.5,
+    "ratio": 8.90283186355689
+  },
+  {
+    "fg": "ink",
+    "bg": "accent-active",
+    "min": 4.5,
+    "ratio": 7.477237716785375
   },
   {
     "fg": "error",
     "bg": "error-paper",
     "min": 4.5,
-    "ratio": 8.646036453157759
+    "ratio": 5.235241359842191
+  },
+  {
+    "fg": "success",
+    "bg": "success-paper",
+    "min": 4.5,
+    "ratio": 4.835445678549616
+  },
+  {
+    "fg": "success",
+    "bg": "surface",
+    "min": 4.5,
+    "ratio": 5.384854699147869
+  },
+  {
+    "fg": "info",
+    "bg": "info-paper",
+    "min": 4.5,
+    "ratio": 8.883367847545715
+  },
+  {
+    "fg": "rail-ink",
+    "bg": "rail",
+    "min": 7,
+    "ratio": 15.09809644623331
+  },
+  {
+    "fg": "rail-muted",
+    "bg": "rail",
+    "min": 4.5,
+    "ratio": 12.302363992249893
+  },
+  {
+    "fg": "focus",
+    "bg": "surface",
+    "min": 3,
+    "ratio": 10.195616686003897
   },
   {
     "fg": "focus",
     "bg": "paper",
     "min": 3,
-    "ratio": 7.72505576945227
+    "ratio": 9.680696336857316
   },
   {
     "fg": "focus",
     "bg": "accent",
     "min": 3,
-    "ratio": 4.068591981998089
+    "ratio": 6.21985004967722
+  },
+  {
+    "fg": "accent",
+    "bg": "rail",
+    "min": 3,
+    "ratio": 9.700531104730572
   },
   {
     "fg": "rule",
     "bg": "surface",
     "min": 3,
-    "ratio": 4.754114016683094
+    "ratio": 10.195616686003897
+  },
+  {
+    "fg": "rail-rule",
+    "bg": "rail",
+    "min": 3,
+    "ratio": 6.12614989920436
   }
 ]

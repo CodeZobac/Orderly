@@ -1,5 +1,46 @@
-/* Hallmark · macrostructure: Workbench · tone: utilitarian · anchor hue: amber */
+/* Hallmark · macrostructure: Workbench · tone: bold precision · anchor hue: amber
+ * design-system: ../../DESIGN.md · designed-as-app · Stitch Chromatic Precision */
 @import "tailwindcss";
+
+.active-timers {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.timer-toasts {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 100;
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.timer-toast {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 2px solid var(--color-rule);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 4px 0 var(--color-card-band);
+}
+.timer-toast p {
+  margin: 0 0 0.5rem;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+}
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+}
+.project-task > span {
+  display: block;
+  font-size: 0.875rem;
+}
 @import "../tokens.css";
 
 /* BranchedMenu keeps its layout independent of the legacy responsive nav. */
@@ -572,6 +613,88 @@ footer {
 .auth form {
   margin-top: var(--space-xl);
 }
+.workspace-loading {
+  padding-inline: var(--space-md);
+}
+.workspace-loader {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+.workspace-loader h1,
+.workspace-loader p {
+  margin: 0;
+}
+.workspace-loader p {
+  color: var(--color-muted);
+}
+.workspace-loader__scene {
+  display: block;
+  width: min(100%, 280px);
+  height: auto;
+}
+.workspace-loader__frame {
+  fill: var(--color-surface);
+  stroke: var(--color-rule);
+}
+.workspace-loader__divider {
+  stroke: var(--color-divider);
+}
+.workspace-loader__chrome {
+  fill: var(--color-divider);
+}
+.workspace-loader__card {
+  animation: workspace-card-assemble 3s var(--ease-out) infinite both;
+}
+.workspace-loader__card--2 {
+  animation-delay: 180ms;
+}
+.workspace-loader__card--3 {
+  animation-delay: 360ms;
+}
+.workspace-loader__card-paper {
+  fill: var(--color-paper);
+  stroke: var(--color-divider);
+}
+.workspace-loader__check {
+  fill: var(--color-accent);
+}
+.workspace-loader__tick {
+  stroke: var(--color-accent-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.workspace-loader__line {
+  stroke: var(--color-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+@keyframes workspace-card-assemble {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translate(12px, 8px);
+  }
+  28%,
+  72% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: translate(0, -6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-loader__card {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 .lede {
   font-size: 1.15rem;
   margin-bottom: var(--space-xl);
@@ -924,4 +1047,456 @@ main {
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-sm);
+}
+
+/* Billing uses the established amber ledger tokens and control states. */
+.billing-workspace {
+  display: grid;
+  gap: var(--space-lg);
+}
+.billing-filters {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+.billing-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+.billing-totals article {
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: var(--color-surface);
+}
+.billing-totals dl {
+  display: grid;
+  gap: 0.5rem;
+}
+.billing-totals dd {
+  margin: 0;
+  font-family: var(--font-data);
+  overflow-wrap: anywhere;
+}
+.billing-subtotals,
+.billing-lines {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.billing-subtotals article,
+.billing-line {
+  border-bottom: 1px solid var(--color-rule);
+  padding-block: 1rem;
+  min-width: 0;
+}
+.billing-workspace :is(p, a, pre, li, .mono) {
+  overflow-wrap: anywhere;
+}
+.billing-workspace pre {
+  white-space: pre-wrap;
+}
+.billing-id {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+.billing-line form {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.print-evidence {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  .rail,
+  .page-head,
+  .billing-controls,
+  .workspace > main > :not(.billing-workspace),
+  .skip-link,
+  footer {
+    display: none !important;
+  }
+  .workspace,
+  .workspace > main,
+  .billing-workspace,
+  .billing-report {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+  .billing-report {
+    border: 0 !important;
+    background: var(--color-paper) !important;
+    box-shadow: none !important;
+  }
+  .billing-line,
+  .billing-totals article {
+    break-inside: avoid;
+  }
+  .billing-report :is(h2, h3, h4) {
+    break-after: avoid;
+  }
+  .print-evidence {
+    display: inline;
+  }
+  .billing-report a {
+    color: var(--color-ink);
+    text-decoration: underline;
+  }
+  .billing-report {
+    font-size: 10pt;
+  }
+}
+.billing-workspace .actions {
+  align-items: center;
+}
+.billing-workspace button {
+  white-space: nowrap;
+}
+.billing-report .section-head > div {
+  min-width: 0;
+}
+.billing-workspace .billing-line .checkbox {
+  display: flex;
+}
+
+/* Sidebar brand uses the supplied transparent logo asset. */
+.rail .wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  white-space: nowrap;
+}
+.rail .wordmark-copy {
+  min-width: 0;
+}
+.rail .wordmark .logo-model {
+  display: block;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+}
+.logo-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.logo-image--dark {
+  display: none;
+}
+.rail .logo-image--light {
+  display: none;
+}
+.rail .logo-image--dark {
+  display: block;
+}
+
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench
+ * design-system: ../../DESIGN.md · designed-as-app · Stitch: Chromatic Precision
+ * pre-emit critique: P4 H4 E4 S5 R5 V4
+ */
+:root {
+  color-scheme: light;
+  accent-color: var(--color-focus);
+}
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+h1,
+h2,
+h3,
+.wordmark {
+  font-weight: var(--weight-display);
+}
+button {
+  font-weight: var(--weight-control);
+  border-width: 1.5px;
+}
+button.primary {
+  border-color: var(--color-ink);
+  font-weight: 700;
+}
+button:disabled,
+button.primary:disabled {
+  opacity: 1;
+}
+input,
+select,
+textarea {
+  border-width: 1.5px;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  background: var(--color-surface);
+  border-color: var(--color-focus);
+}
+.rail {
+  background: var(--color-rail);
+  color: var(--color-rail-ink);
+  border-color: var(--color-rail-rule);
+}
+.rail .wordmark span,
+.rail .account p {
+  color: var(--color-rail-muted);
+}
+.rail .branched-menu {
+  --bm-muted: var(--color-rail-muted) !important;
+}
+.rail .branched-menu .bm-child {
+  border-radius: var(--radius-sm);
+  padding-right: var(--space-sm);
+}
+.rail .branched-menu .bm-child:hover:not([data-active]) {
+  background: var(--color-rail-hover);
+  color: var(--color-rail-ink);
+}
+.rail .branched-menu .bm-child[data-active] {
+  background: var(--color-rail-selected);
+  color: var(--color-rail-ink);
+  font-weight: 700;
+}
+.rail .branched-menu :is(.bm-head, .bm-child):focus-visible,
+.rail :focus-visible {
+  outline-color: var(--color-accent);
+}
+.rail .account {
+  border-top: 1px solid var(--color-rail-rule);
+  padding-top: var(--space-lg);
+  overflow-wrap: anywhere;
+}
+.rail .account button {
+  background: var(--color-rail);
+  color: var(--color-rail-ink);
+  border-color: var(--color-rail-rule);
+}
+.rail .account button:hover {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+.rail .account button:disabled {
+  background: var(--color-muted);
+  color: var(--color-rail-muted);
+  cursor: not-allowed;
+}
+.rail .wordmark:active {
+  color: var(--color-rail-ink);
+}
+.page-head {
+  padding-bottom: var(--space-lg);
+  border-bottom: 2px solid var(--color-divider);
+}
+.page-head h1 {
+  margin-bottom: 0;
+}
+.timezone {
+  margin-top: var(--space-sm);
+  font-family: var(--font-data);
+}
+.timer-panel {
+  border: 1.5px solid var(--color-rule);
+  border-top: 4px solid var(--color-accent);
+  box-shadow: var(--shadow-panel);
+}
+.timer-panel .clock {
+  font-weight: 650;
+}
+.timer-panel[data-running] {
+  border-color: var(--color-success);
+}
+.timer-panel[data-running] .clock {
+  color: var(--color-success);
+}
+.timer-panel[data-running] > div > button.primary {
+  background: var(--color-success);
+  color: var(--color-success-paper);
+  border-color: var(--color-success);
+}
+.timer-panel[data-running] > div > button.primary:hover {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+}
+.timer-panel[data-running] > div > button.primary:disabled {
+  background: var(--color-disabled);
+  color: var(--color-muted);
+  border-color: var(--color-rule);
+}
+.totals > div {
+  border-left: 4px solid var(--color-accent-active);
+  padding-left: var(--space-md);
+}
+.totals > div + div {
+  border-color: var(--color-info);
+}
+.totals strong {
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.task-list > div:hover,
+.entry:hover,
+.project:hover {
+  background: var(--color-paper-2);
+}
+.notice,
+.editor {
+  border-radius: var(--radius-sm);
+}
+.billing-workspace > .panel,
+.billing-report,
+.auth section {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+}
+.billing-totals article {
+  border-color: var(--color-divider);
+  border-top: 3px solid var(--color-rule);
+}
+.provider-badge {
+  background: var(--color-info-paper);
+  color: var(--color-info);
+}
+.auth .wordmark,
+.workspace-loader__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.auth .logo-model {
+  display: block;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+}
+.auth section {
+  margin-top: var(--space-xl);
+}
+.workspace-loader__frame {
+  stroke-width: 2;
+}
+.workspace-loader__divider {
+  stroke: var(--color-rule);
+}
+.workspace-loader__chrome {
+  fill: var(--color-rule);
+}
+.workspace-loader__card-paper {
+  fill: var(--color-accent);
+  stroke: var(--color-rule);
+}
+.workspace-loader__check {
+  fill: var(--color-ink);
+}
+.workspace-loader__tick {
+  stroke: var(--color-accent);
+}
+.workspace-loader__line {
+  stroke: var(--color-ink);
+}
+@media (min-width: 64rem) {
+  .workspace {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+}
+@media print {
+  .billing-workspace > .panel {
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}
+
+/* Cream canvas, pale-gold card bands and blush navigation. */
+.rail .logo-image--light {
+  display: block;
+}
+.rail .logo-image--dark {
+  display: none;
+}
+.rail .account button:disabled {
+  background: var(--color-paper-2);
+}
+.rail :focus-visible,
+.rail .branched-menu :is(.bm-head, .bm-child):focus-visible {
+  outline-color: var(--color-focus);
+}
+.timer-panel,
+.billing-workspace > .panel,
+.billing-report,
+.billing-totals article,
+.auth section {
+  background-color: var(--color-card-content);
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-card-band) 0 var(--space-md),
+    var(--color-card-content) var(--space-md) calc(100% - var(--space-md)),
+    var(--color-card-band) calc(100% - var(--space-md)) 100%
+  );
+  background-origin: padding-box;
+  padding-block: var(--space-xl);
+}
+@media print {
+  .billing-workspace > .panel,
+  .billing-report {
+    background-image: none;
+  }
+}
+
+/* Blend navigation into the canvas without a dividing rule. */
+.rail {
+  border-right: 0;
+  border-bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--color-rail) calc(100% - var(--space-xl)),
+    var(--color-paper) 100%
+  );
+}
+@media (min-width: 769px) {
+  .rail {
+    background: linear-gradient(
+      to right,
+      var(--color-rail) calc(100% - var(--space-xl)),
+      var(--color-paper) 100%
+    );
+  }
+}
+
+/* Supplied brand mark and its burgundy heading color. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.wordmark,
+.rail .wordmark:active {
+  color: var(--color-heading);
+}
+.rail .wordmark .wordmark-copy {
+  color: var(--color-heading);
+}
+
+/* Frame the supplied PNG above its unused lower canvas. */
+.logo-image--supplied-png {
+  object-fit: cover;
+  object-position: center top;
 }

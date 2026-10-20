@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 0 768 768" width="800" height="800">
+  <!-- Accentuated Golden Triangle Perimeter -->
+  <polygon points="400,32 760,736 40,736" fill="none" stroke="#D99B00" stroke-width="24" stroke-linejoin="round" stroke-linecap="round"/>
+  
+  <!-- Solid Bold Inner Triangle Silhouette Shield -->
+  <polygon points="400,82 712,704 88,704" fill="#FBBF24" stroke="#D99B00" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- Inset Shield Base Frame (White / Tinted Canvas) -->
+  <polygon points="400,136 662,670 138,670" fill="#FFFDF7" stroke="#5C061C" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Centered numeral pair with separated digits and a shared baseline. -->
+  <g id="numeral-13" fill="#5C061C" transform="translate(400 300) scale(0.70 1.05) translate(-421 -252)">
+    <!-- Digit 1 (Properly scaled & centered in upper triangle chamber) -->
+    <path d="M 346,252 L 378,252 L 378,396 L 398,396 L 398,424 L 326,424 L 326,396 L 346,396 L 346,298 L 324,314 L 310,290 Z" />
+    
+    <!-- Shift the 3 right to leave a clear gap from the foot of the 1. -->
+    <path transform="translate(42 -2)" d="M 416,252 L 484,252 L 484,286 L 448,328 C 458,327 468,330 476,336 C 485,343 490,354 490,368 C 490,385 483,399 470,410 C 456,421 437,426 414,426 C 397,426 382,422 368,416 L 378,386 C 388,391 400,394 413,394 C 424,394 433,392 440,386 C 446,380 449,373 449,365 C 449,356 445,349 438,344 C 431,338 420,336 407,336 L 407,308 L 444,280 L 416,280 Z" />
+  </g>
+
+  <!-- Scale the complete clock uniformly about the triangle center. -->
+  <g id="chess-clock" transform="translate(48 78) scale(0.88)">
+  <!-- DUAL-DIAL CHESS CLOCK COMPONENT -->
+  <!-- Mechanical Plungers on top of chess clock body -->
+  <!-- Left Plunger (Pressed Down State) -->
+  <rect x="252" y="468" width="40" height="14" rx="3" fill="#D99B00" stroke="#5C061C" stroke-width="5" />
+  <rect x="264" y="478" width="16" height="14" fill="#5C061C" />
+
+  <!-- Right Plunger (Active Up State) -->
+  <rect x="508" y="442" width="40" height="14" rx="3" fill="#FBBF24" stroke="#5C061C" stroke-width="5" />
+  <rect x="520" y="456" width="16" height="34" fill="#5C061C" />
+
+  <!-- Chess Clock Main Chassis Body -->
+  <rect x="202" y="488" width="396" height="152" rx="20" fill="#FBBF24" stroke="#5C061C" stroke-width="11" />
+
+  <!-- Clock Stand / Feet -->
+  <rect x="238" y="640" width="50" height="14" rx="4" fill="#5C061C" />
+  <rect x="512" y="640" width="50" height="14" rx="4" fill="#5C061C" />
+
+  <!-- Left Dial Face -->
+  <g transform="translate(306, 564)">
+    <circle cx="0" cy="0" r="54" fill="#FFFDF7" stroke="#5C061C" stroke-width="8" />
+    <!-- Hour tick marks -->
+    <line x1="0" y1="-46" x2="0" y2="-37" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="0" y1="46" x2="0" y2="37" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="-46" y1="0" x2="-37" y2="0" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="46" y1="0" x2="37" y2="0" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <!-- Center pivot pin -->
+    <circle cx="0" cy="0" r="6" fill="#5C061C" />
+    <!-- Clock Hands (Showing ~10:10 position) -->
+    <line x1="0" y1="0" x2="-24" y2="-20" stroke="#5C061C" stroke-width="7" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="20" y2="-24" stroke="#D99B00" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right Dial Face -->
+  <g transform="translate(494, 564)">
+    <circle cx="0" cy="0" r="54" fill="#FFFDF7" stroke="#5C061C" stroke-width="8" />
+    <!-- Hour tick marks -->
+    <line x1="0" y1="-46" x2="0" y2="-37" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="0" y1="46" x2="0" y2="37" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="-46" y1="0" x2="-37" y2="0" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <line x1="46" y1="0" x2="37" y2="0" stroke="#5C061C" stroke-width="5" stroke-linecap="round"/>
+    <!-- Center pivot pin -->
+    <circle cx="0" cy="0" r="6" fill="#5C061C" />
+    <!-- Clock Hands (Showing ~02:24 position) -->
+    <line x1="0" y1="0" x2="24" y2="-16" stroke="#5C061C" stroke-width="7" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="18" y2="26" stroke="#D99B00" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  </g>
+</svg>

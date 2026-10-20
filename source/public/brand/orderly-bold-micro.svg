@@ -1,0 +1,21 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M50 8L92 88C94 92 91 96 86 96H14C9 96 6 92 8 88L50 8Z"
+    fill="#FBBF24"
+  />
+  <path d="M22 62H78V88H22V62Z" fill="#5C061C" />
+  <circle cx="37" cy="75" r="9" fill="#FBBF24" />
+  <circle cx="63" cy="75" r="9" fill="#FBBF24" />
+  <text
+    x="50"
+    y="52"
+    fill="#5C061C"
+    font-family="'Plus Jakarta Sans', sans-serif"
+    font-weight="900"
+    font-size="28"
+    text-anchor="middle"
+    letter-spacing="-1"
+  >
+    13
+  </text>
+</svg>
